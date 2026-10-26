@@ -1,22 +1,25 @@
 import 'package:get/get.dart';
 
-import '../../../data/providers/api_client.dart';
-
 class AccountController extends GetxController {
-  AccountController({required this.apiProvider});
-
-  final ApiClient apiProvider;
   final isLoggedIn = false.obs;
 
   final username = ''.obs;
   final phone = ''.obs;
   final email = ''.obs;
+  final birthday = Rxn<DateTime>();
+  final gender = 'unspecified'.obs;
+  final notificationPreferences = <String, bool>{
+    'push': true,
+    'email': true,
+    'sms': false,
+  }.obs;
   final password = ''.obs;
   final customerId = ''.obs;
   final membershipTier = 'BRONZE'.obs;
   final loyaltyPoints = 0.obs;
   final pointsHistory = <Map<String, dynamic>>[].obs;
   final vouchers = <Map<String, dynamic>>[].obs;
+  final savedAddresses = <Map<String, dynamic>>[].obs;
 
   String get membershipTierLabel {
     switch (membershipTier.value.toUpperCase()) {
@@ -36,27 +39,7 @@ class AccountController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _restoreSession();
     loadVouchers();
-  }
-
-  Future<void> _restoreSession() async {
-    if (!await apiProvider.hasAccessToken()) return;
-    try {
-      final response = await apiProvider.get('/api/auth/me');
-      if (response is Map) {
-        setProfile(
-          username: response['name']?.toString() ?? '',
-          email: response['email']?.toString() ?? '',
-          phone: response['phone']?.toString() ?? '',
-          id: response['id']?.toString() ?? '',
-          tier: response['membershipTier']?.toString() ?? 'BRONZE',
-          points: (response['loyaltyPoints'] as num?)?.toInt() ?? 0,
-        );
-      }
-    } catch (_) {
-      await apiProvider.clearTokens();
-    }
   }
 
   void login() {
@@ -87,6 +70,8 @@ class AccountController extends GetxController {
     String id = '',
     String tier = 'BRONZE',
     int points = 0,
+    String? birthday,
+    String gender = 'unspecified',
   }) {
     this.username.value = username;
     this.email.value = email;
@@ -94,45 +79,65 @@ class AccountController extends GetxController {
     customerId.value = id;
     membershipTier.value = tier;
     loyaltyPoints.value = points;
+    this.birthday.value = DateTime.tryParse(birthday ?? '');
+    this.gender.value = gender;
     password.value = '';
     isLoggedIn.value = true;
-    if (id.isNotEmpty) loadMembershipDetails();
+    loadMembershipDetails();
+    loadNotificationPreferences();
+    loadSavedAddresses();
+  }
+
+  Future<void> updateProfile({
+    String? name,
+    String? phone,
+    DateTime? birthday,
+    bool clearBirthday = false,
+    String? gender,
+  }) async {
+    if (name != null) username.value = name;
+    if (phone != null) this.phone.value = phone;
+    if (birthday != null || clearBirthday) this.birthday.value = clearBirthday ? null : birthday;
+    if (gender != null) this.gender.value = gender;
+  }
+
+  Future<void> loadNotificationPreferences() async {
+    // Demo preferences are held in memory until an account service is connected.
+  }
+
+  Future<void> updateNotificationPreferences(Map<String, bool> preferences) async {
+    notificationPreferences.assignAll(preferences);
+  }
+
+  Future<void> loadSavedAddresses() async {
+    if (savedAddresses.isEmpty) {
+      savedAddresses.assignAll([
+        {'label': 'Nhà', 'address': '128 Cầu Giấy, Hà Nội'},
+        {'label': 'Công ty', 'address': 'Tòa nhà Keangnam, Hà Nội'},
+      ]);
+    }
+  }
+
+  Future<void> updateSavedAddresses(List<Map<String, dynamic>> addresses) async {
+    savedAddresses.assignAll(
+      addresses.map((item) => Map<String, dynamic>.from(item)),
+    );
   }
 
   Future<void> loadMembershipDetails() async {
-    final id = customerId.value;
-    if (id.isEmpty || !isLoggedIn.value) return;
-    try {
-      final data = await apiProvider.get('/api/customers/$id');
-      if (data is! Map) return;
-      membershipTier.value =
-          data['membershipTier']?.toString() ?? membershipTier.value;
-      loyaltyPoints.value =
-          (data['loyaltyPoints'] as num?)?.toInt() ?? loyaltyPoints.value;
-      final history = data['pointsHistory'];
-      if (history is List) {
-        pointsHistory.assignAll(
-          history.whereType<Map>().map(
-            (item) => Map<String, dynamic>.from(item),
-          ),
-        );
-      }
-    } catch (_) {
-      // Keep the profile values returned by /api/auth/me when history is unavailable.
+    if (pointsHistory.isEmpty) {
+      pointsHistory.assignAll([
+        {'title': 'Đơn hàng MAXKO', 'points': 24, 'date': 'Hôm nay'},
+        {'title': 'Ưu đãi thành viên', 'points': 50, 'date': 'Tuần này'},
+      ]);
     }
   }
 
   Future<void> loadVouchers() async {
-    try {
-      final data = await apiProvider.get('/api/customers/vouchers');
-      if (data is List) {
-        vouchers.assignAll(
-          data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
-        );
-      }
-    } catch (_) {
-      vouchers.clear();
-    }
+    vouchers.assignAll([
+      {'code': 'MAXKO20', 'title': 'Giảm 20%', 'description': 'Đơn từ 80.000đ'},
+      {'code': 'FREESHIP', 'title': 'Miễn phí giao hàng', 'description': 'Đơn từ 100.000đ'},
+    ]);
   }
 
   bool authenticate({required String identifier, required String password}) {
@@ -149,19 +154,18 @@ class AccountController extends GetxController {
   }
 
   Future<void> logout() async {
-    try {
-      await apiProvider.logout();
-    } catch (_) {
-      // Local sign-out must still work if the server is unavailable.
-      await apiProvider.clearTokens();
-    }
     isLoggedIn.value = false;
     username.value = '';
     phone.value = '';
     email.value = '';
+    birthday.value = null;
+    gender.value = 'unspecified';
+    notificationPreferences.assignAll({'push': true, 'email': true, 'sms': false});
     customerId.value = '';
     membershipTier.value = 'BRONZE';
     loyaltyPoints.value = 0;
     pointsHistory.clear();
+    savedAddresses.clear();
+    loadVouchers();
   }
 }

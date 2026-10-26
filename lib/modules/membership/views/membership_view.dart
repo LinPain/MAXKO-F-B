@@ -1,9 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../../app/theme/app_colors.dart';
 import '../../../app/routes/app_routes.dart';
+import '../../../app/theme/app_colors.dart';
+import '../../../widgets/app_section_title.dart';
 import '../../account/controllers/account_controller.dart';
+
+const _previewPointHistory = <Map<String, dynamic>>[
+  {
+    'description': 'Tích điểm đơn hàng #MK-99182',
+    'points': 120,
+    'date': 'Hôm nay · 10:32',
+  },
+  {'description': 'Đổi voucher MAXKO20', 'points': -300, 'date': '18/10/2026'},
+  {
+    'description': 'Tích điểm đơn hàng #MK-98801',
+    'points': 85,
+    'date': '15/10/2026',
+  },
+];
+
+const _previewVouchers = <Map<String, dynamic>>[
+  {
+    'title': 'Giảm 20% đồ uống',
+    'discountPercent': 20,
+    'maxDiscount': 30000,
+    'code': 'MAXKO20',
+  },
+  {
+    'title': 'Tặng topping yêu thích',
+    'discountAmount': 10000,
+    'code': 'TOPPING10',
+  },
+];
 
 class MembershipView extends StatelessWidget {
   const MembershipView({super.key});
@@ -13,56 +42,336 @@ class MembershipView extends StatelessWidget {
     final account = Get.find<AccountController>();
     return Obx(() {
       final signedIn = account.isLoggedIn.value;
-      final memberName = signedIn ? account.username.value : 'Khách hàng';
-      final phone = signedIn ? account.phone.value : '';
-      final tier = signedIn ? account.membershipTierLabel : 'Thành viên';
-      final points = signedIn ? account.loyaltyPoints.value : 0;
-      final history = account.pointsHistory.toList();
-      final vouchers = account.vouchers.toList();
+      final history = signedIn
+          ? account.pointsHistory.toList()
+          : _previewPointHistory;
+      final vouchers = signedIn && account.vouchers.isNotEmpty
+          ? account.vouchers.toList()
+          : _previewVouchers;
+      final points = signedIn ? account.loyaltyPoints.value : 2450;
 
       return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(10, 10, 10, 28),
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildMembershipCard(memberName, phone, tier, points),
+            _MembershipPass(
+              signedIn: signedIn,
+              name: signedIn ? account.username.value : 'Hoàng Nam',
+              contact: signedIn ? account.phone.value : '',
+              tier: signedIn ? account.membershipTierLabel : 'GOLD',
+              points: points,
+              onLogin: account.login,
+            ),
+            if (!signedIn) ...[
+              const SizedBox(height: 7),
+              const Text(
+                'Dữ liệu hội viên mẫu · Đăng nhập để xem điểm và ưu đãi của bạn',
+                style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+              ),
+            ],
+            const SizedBox(height: 12),
+            _MembershipQuickActions(
+              onTap: (index) {
+                if (index == 1) {
+                  Get.toNamed(AppRoutes.orderHistory);
+                } else if (index == 2) {
+                  Get.snackbar(
+                    'Đặc quyền MAXKO',
+                    'Tích điểm, voucher riêng và ưu đãi sinh nhật.',
+                  );
+                } else if (index == 3) {
+                  Get.snackbar(
+                    'Mời bạn bè',
+                    'Chia sẻ mã giới thiệu MAXKO20 để cùng nhận ưu đãi.',
+                  );
+                } else {
+                  Get.snackbar(
+                    'Đổi điểm',
+                    'Chọn quà trong MAXKO Point Store bên dưới.',
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 17),
+            const AppSectionTitle(
+              title: 'Đặc quyền Gold Member',
+              subtitle: 'Ưu đãi dành riêng cho hội viên MAXKO',
+            ),
+            const SizedBox(height: 9),
+            const _BenefitsCard(),
+            const SizedBox(height: 18),
+            _PointStoreSection(points: points, preview: !signedIn),
+            const SizedBox(height: 18),
+            const AppSectionTitle(
+              title: 'Lịch sử điểm gần đây',
+              subtitle: 'Giao dịch thưởng và đổi quà',
+            ),
+            const SizedBox(height: 9),
+            _PointsHistoryCard(
+              points: points,
+              history: history,
+              signedIn: signedIn,
+            ),
+            const SizedBox(height: 20),
+            AppSectionTitle(
+              title: 'Voucher của bạn',
+              subtitle: 'Ưu đãi hiện có trong tài khoản',
+              actionLabel: '${vouchers.length} mã',
+            ),
             const SizedBox(height: 10),
-            _buildProgressCard(points, tier, history),
-            const SizedBox(height: 10),
-            _buildBenefits(),
-            const SizedBox(height: 10),
-            _buildVouchers(vouchers),
-            const SizedBox(height: 10),
-            _buildReferral(),
-            const SizedBox(height: 10),
-            _buildAccountSection(signedIn),
+            _VoucherList(vouchers: vouchers),
+            const SizedBox(height: 16),
+            const _MembershipFaq(),
+            const SizedBox(height: 14),
+            _AccountActions(signedIn: signedIn),
           ],
         ),
       );
     });
   }
+}
 
-  Widget _buildMembershipCard(
-    String name,
-    String phone,
-    String tier,
-    int points,
-  ) {
+class _MembershipQuickActions extends StatelessWidget {
+  const _MembershipQuickActions({required this.onTap});
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      (Icons.redeem_rounded, 'Đổi điểm'),
+      (Icons.receipt_long_rounded, 'Đơn hàng'),
+      (Icons.workspace_premium_rounded, 'Đặc quyền'),
+      (Icons.card_giftcard_rounded, 'Mời bạn bè'),
+    ];
+    return Row(
+      children: [
+        for (var i = 0; i < items.length; i++)
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => onTap(i),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE7DC),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        items[i].$1,
+                        color: AppColors.primary,
+                        size: 21,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      items[i].$2,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PointStoreSection extends StatelessWidget {
+  const _PointStoreSection({required this.points, required this.preview});
+  final int points;
+  final bool preview;
+
+  @override
+  Widget build(BuildContext context) {
+    const rewards = [
+      ('Voucher 20K', '500 điểm', Icons.local_offer_rounded),
+      ('Topping miễn phí', '300 điểm', Icons.icecream_rounded),
+      ('Nước size M', '1.200 điểm', Icons.local_cafe_rounded),
+      ('Combo MAXKO', '2.000 điểm', Icons.fastfood_rounded),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSectionTitle(
+          title: 'MAXKO Point Store',
+          subtitle: 'Bạn có ${_formatNumber(points)} điểm',
+          actionLabel: 'Xem tất cả',
+        ),
+        const SizedBox(height: 9),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: rewards.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 9,
+            mainAxisSpacing: 9,
+            childAspectRatio: 1.58,
+          ),
+          itemBuilder: (context, index) {
+            final reward = rewards[index];
+            return InkWell(
+              onTap: () => Get.snackbar(
+                'MAXKO Point Store',
+                preview
+                    ? 'Đăng nhập để đổi quà.'
+                    : 'Tính năng đổi quà sẽ sớm khả dụng.',
+              ),
+              borderRadius: BorderRadius.circular(15),
+              child: Container(
+                padding: const EdgeInsets.all(11),
+                decoration: BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 37,
+                      height: 37,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE7DC),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Icon(
+                        reward.$3,
+                        color: AppColors.primary,
+                        size: 19,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reward.$1,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            reward.$2,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _MembershipFaq extends StatelessWidget {
+  const _MembershipFaq();
+  @override
+  Widget build(BuildContext context) => _SurfaceCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Câu hỏi thường gặp',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 5),
+        const _FaqTile(
+          question: 'Làm thế nào để tích điểm?',
+          answer: 'Điểm thưởng được cộng sau khi đơn hàng hoàn tất và tài khoản của bạn đã đăng nhập.',
+        ),
+        const _FaqTile(
+          question: 'Điểm có thời hạn không?',
+          answer: 'Thời hạn điểm sẽ hiển thị trong điều khoản chương trình hội viên.',
+        ),
+      ],
+    ),
+  );
+}
+
+class _FaqTile extends StatelessWidget {
+  const _FaqTile({required this.question, required this.answer});
+  final String question;
+  final String answer;
+  @override
+  Widget build(BuildContext context) => ExpansionTile(
+    tilePadding: EdgeInsets.zero,
+    childrenPadding: const EdgeInsets.only(bottom: 9),
+    title: Text(
+      question,
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+    ),
+    children: [
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          answer,
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+        ),
+      ),
+    ],
+  );
+}
+
+class _MembershipPass extends StatelessWidget {
+  const _MembershipPass({
+    required this.signedIn,
+    required this.name,
+    required this.contact,
+    required this.tier,
+    required this.points,
+    required this.onLogin,
+  });
+
+  final bool signedIn;
+  final String name;
+  final String contact;
+  final String tier;
+  final int points;
+  final VoidCallback onLogin;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(17),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF542000), AppColors.primary, Color(0xFFC77920)],
+          colors: [Color(0xFF1E232A), Color(0xFF3A342F), Color(0xFF8F3A11)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.18),
-            blurRadius: 14,
-            offset: const Offset(0, 6),
+            color: AppColors.primaryDark.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -75,18 +384,12 @@ class MembershipView extends StatelessWidget {
                 width: 42,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Center(
-                  child: Text(
-                    'LG',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+                child: const Icon(
+                  Icons.local_cafe_rounded,
+                  color: Color(0xFFFFB77D),
                 ),
               ),
               const SizedBox(width: 10),
@@ -95,38 +398,41 @@ class MembershipView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'HỒNG TRÀ LÊ GIA',
+                      'MAXKO F&B GROUP',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0.7,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: 3),
                     Text(
                       'MEMBERSHIP CLUB',
                       style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 7,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.white60,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.4,
                       ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFD76A),
-                  borderRadius: BorderRadius.circular(20),
+                  color: const Color(0xFFFFD9A6),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Text(
                   tier,
                   style: const TextStyle(
-                    color: Color(0xFF6D3B00),
-                    fontSize: 8,
+                    color: AppColors.primaryDark,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -136,18 +442,19 @@ class MembershipView extends StatelessWidget {
           const SizedBox(height: 25),
           Text(
             name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
+            style: Theme.of(context).textTheme.titleLarge
+                ?.copyWith(color: Colors.white, fontWeight: FontWeight.w800),
+          ),
+          if (contact.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              contact,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            phone,
-            style: const TextStyle(color: Colors.white70, fontSize: 9),
-          ),
-          const SizedBox(height: 18),
+          ],
+          const SizedBox(height: 19),
+          Container(height: 1, color: Colors.white24),
+          const SizedBox(height: 15),
           Row(
             children: [
               Expanded(
@@ -155,64 +462,76 @@ class MembershipView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'ĐIỂM THÀNH VIÊN',
+                      'ĐIỂM KHẢ DỤNG',
                       style: TextStyle(
-                        color: Colors.white60,
-                        fontSize: 7,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      _formatNumber(points),
+                      '${_formatNumber(points)} điểm',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                   ],
                 ),
               ),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Get.snackbar(
+              if (signedIn)
+                OutlinedButton.icon(
+                  onPressed: () => Get.snackbar(
                     'Mã thành viên',
-                    'QR thành viên sẽ được kết nối sau.',
+                    'Mã QR thành viên sẽ được kết nối sau.',
                     snackPosition: SnackPosition.BOTTOM,
-                  );
-                },
-                icon: const Icon(Icons.qr_code_rounded, size: 15),
-                label: const Text(
-                  'Mã thành viên',
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white54),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 8,
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(9),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white54),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 12,
+                    ),
                   ),
+                  icon: const Icon(Icons.qr_code_rounded, size: 17),
+                  label: const Text('Mã thành viên'),
+                )
+              else
+                FilledButton.tonal(
+                  onPressed: onLogin,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primary,
+                  ),
+                  child: const Text('Đăng nhập'),
                 ),
-              ),
             ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildProgressCard(
-    int points,
-    String tier,
-    List<Map<String, dynamic>> history,
-  ) {
-    final recentHistory = history.take(3).toList();
-    return _SectionCard(
+class _PointsHistoryCard extends StatelessWidget {
+  const _PointsHistoryCard({
+    required this.points,
+    required this.history,
+    required this.signedIn,
+  });
+
+  final int points;
+  final List<Map<String, dynamic>> history;
+  final bool signedIn;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -220,171 +539,79 @@ class MembershipView extends StatelessWidget {
             children: [
               const Expanded(
                 child: Text(
-                  'Điểm hội viên',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  'Số dư điểm',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
                 ),
               ),
               Text(
-                'Hạng $tier',
+                '${_formatNumber(points)} điểm',
                 style: const TextStyle(
-                  color: AppColors.gold,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '${_formatNumber(points)} điểm khả dụng',
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 10),
-          if (recentHistory.isEmpty)
-            const Text(
-              'Chưa có giao dịch tích điểm.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 9),
-            )
+          const SizedBox(height: 13),
+          if (!signedIn)
+            const _MutedMessage('Đăng nhập để xem lịch sử điểm của bạn.')
+          else if (history.isEmpty)
+            const _MutedMessage('Chưa có giao dịch điểm gần đây.')
           else
-            ...recentHistory.map(
-              (entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+            ...history.take(4).map((entry) {
+              final delta = (entry['points'] as num?)?.toInt() ?? 0;
+              final date = entry['date']?.toString();
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
                 child: Row(
                   children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(
+                        Icons.stars_rounded,
+                        color: AppColors.amber,
+                        size: 19,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Text(
-                        entry['description']?.toString() ?? 'Giao dịch điểm',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 9,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry['description']?.toString() ??
+                                'Giao dịch điểm',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
+                          if (date != null)
+                            Text(
+                              date,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                        ],
                       ),
                     ),
                     Text(
-                      '${(entry['points'] as num?)?.toInt() ?? 0} điểm',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                      '${delta > 0 ? '+' : ''}$delta',
+                      style: TextStyle(
+                        color: delta >= 0
+                            ? AppColors.matcha
+                            : AppColors.primary,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                   ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBenefits() {
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Quyền lợi thành viên',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 11),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 2.6,
-            children: const [
-              _BenefitItem(
-                icon: Icons.stars_rounded,
-                title: 'Tích điểm',
-                description: 'Mỗi đơn hàng',
-              ),
-              _BenefitItem(
-                icon: Icons.discount_rounded,
-                title: 'Giảm giá',
-                description: 'Ưu đãi thành viên',
-              ),
-              _BenefitItem(
-                icon: Icons.cake_rounded,
-                title: 'Quà sinh nhật',
-                description: 'Ưu đãi đặc biệt',
-              ),
-              _BenefitItem(
-                icon: Icons.local_shipping_rounded,
-                title: 'Freeship',
-                description: 'Theo điều kiện',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVouchers(List<Map<String, dynamic>> vouchers) {
-    return _SectionCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'Voucher khả dụng',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Text(
-                '${vouchers.length} voucher',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          if (vouchers.isEmpty)
-            const Text(
-              'Hiện chưa có voucher khả dụng.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 9),
-            )
-          else
-            ...vouchers.map((voucher) {
-              final percent =
-                  (voucher['discountPercent'] as num?)?.toInt() ?? 0;
-              final amount = (voucher['discountAmount'] as num?)?.toInt() ?? 0;
-              final maxDiscount =
-                  (voucher['maxDiscount'] as num?)?.toInt() ?? 0;
-              final description = percent > 0
-                  ? 'Giảm $percent%'
-                        '${maxDiscount > 0 ? ', tối đa ${_formatNumber(maxDiscount)}đ' : ''}'
-                  : amount > 0
-                  ? 'Giảm ${_formatNumber(amount)}đ'
-                  : 'Ưu đãi dành cho khách hàng';
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _VoucherItem(
-                  title: voucher['title']?.toString() ?? 'Ưu đãi',
-                  description: description,
-                  code: voucher['code']?.toString() ?? '',
                 ),
               );
             }),
@@ -392,301 +619,228 @@ class MembershipView extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildReferral() {
-    return _SectionCard(
+class _VoucherList extends StatelessWidget {
+  const _VoucherList({required this.vouchers});
+
+  final List<Map<String, dynamic>> vouchers;
+
+  @override
+  Widget build(BuildContext context) {
+    if (vouchers.isEmpty) {
+      return const _SurfaceCard(
+        child: _MutedMessage('Hiện chưa có voucher khả dụng.'),
+      );
+    }
+    return Column(
+      children: vouchers.map((voucher) {
+        final percent = (voucher['discountPercent'] as num?)?.toInt() ?? 0;
+        final amount = (voucher['discountAmount'] as num?)?.toInt() ?? 0;
+        final maxDiscount = (voucher['maxDiscount'] as num?)?.toInt() ?? 0;
+        final detail = percent > 0
+            ? 'Giảm $percent%${maxDiscount > 0 ? ' · tối đa ${_formatNumber(maxDiscount)}đ' : ''}'
+            : amount > 0
+            ? 'Giảm ${_formatNumber(amount)}đ'
+            : 'Ưu đãi dành cho khách hàng';
+        final code = voucher['code']?.toString() ?? '';
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: _VoucherTile(
+            title: voucher['title']?.toString() ?? 'Ưu đãi MAXKO',
+            detail: detail,
+            code: code,
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+class _VoucherTile extends StatelessWidget {
+  const _VoucherTile({
+    required this.title,
+    required this.detail,
+    required this.code,
+  });
+
+  final String title;
+  final String detail;
+  final String code;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.primary.withValues(alpha: 0.09),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(
-              Icons.people_alt_outlined,
+              Icons.confirmation_number_outlined,
               color: AppColors.primary,
-              size: 22,
             ),
           ),
-          const SizedBox(width: 10),
-          const Expanded(
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Giới thiệu bạn bè',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-                SizedBox(height: 3),
+                const SizedBox(height: 3),
                 Text(
-                  'Mời bạn bè sử dụng Hồng Trà Lê Gia để nhận thêm ưu đãi.',
-                  style: TextStyle(
+                  detail,
+                  style: const TextStyle(
                     color: AppColors.textSecondary,
-                    fontSize: 8,
-                    height: 1.4,
+                    fontSize: 12,
                   ),
                 ),
+                if (code.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Mã: $code',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          IconButton(
-            onPressed: () {
-              Get.snackbar(
-                'Giới thiệu bạn bè',
-                'Chức năng chia sẻ sẽ được kết nối sau.',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            },
-            icon: const Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AppColors.primary,
-              size: 15,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildAccountSection(bool signedIn) {
-    return _SectionCard(
+class _BenefitsCard extends StatelessWidget {
+  const _BenefitsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Tài khoản & bảo mật',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+          Text(
+            'Đặc quyền thành viên',
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 7),
-          _AccountItem(
+          const SizedBox(height: 12),
+          const _BenefitRow(
+            icon: Icons.stars_rounded,
+            title: 'Tích điểm đơn hàng',
+            detail: 'Theo dõi điểm thưởng trong tài khoản của bạn.',
+          ),
+          const SizedBox(height: 10),
+          const _BenefitRow(
+            icon: Icons.local_offer_outlined,
+            title: 'Ưu đãi cá nhân',
+            detail: 'Xem voucher khả dụng ngay trong ứng dụng.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.amber),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                style: Theme.of(context).textTheme.bodySmall
+                    ?.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AccountActions extends StatelessWidget {
+  const _AccountActions({required this.signedIn});
+
+  final bool signedIn;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tài khoản',
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          _AccountActionTile(
             icon: Icons.person_outline_rounded,
             title: 'Thông tin cá nhân',
-            onTap: () {
-              Get.toNamed('/account');
-            },
+            onTap: () => Get.toNamed('/account'),
           ),
-          _AccountItem(
+          _AccountActionTile(
             icon: Icons.lock_outline_rounded,
             title: 'Đổi mật khẩu',
             onTap: () {
-              if (!signedIn) {
+              if (signedIn) {
+                Get.toNamed(AppRoutes.changePassword);
+              } else {
                 Get.snackbar(
                   'Cần đăng nhập',
                   'Đăng nhập để đổi mật khẩu.',
                   snackPosition: SnackPosition.BOTTOM,
                 );
-                return;
               }
-              Get.toNamed(AppRoutes.changePassword);
-            },
-          ),
-          _AccountItem(
-            icon: Icons.security_rounded,
-            title: 'Bảo mật tài khoản',
-            onTap: () {
-              Get.snackbar(
-                'Bảo mật',
-                'Chức năng sẽ được xây dựng sau.',
-                snackPosition: SnackPosition.BOTTOM,
-              );
             },
           ),
         ],
       ),
     );
   }
-
-  static String _formatNumber(int value) {
-    return value.toString().replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => '.',
-    );
-  }
 }
 
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _BenefitItem extends StatelessWidget {
-  const _BenefitItem({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.gold, size: 21),
-          const SizedBox(width: 7),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 7,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _VoucherItem extends StatelessWidget {
-  const _VoucherItem({
-    required this.title,
-    required this.description,
-    required this.code,
-  });
-
-  final String title;
-  final String description;
-  final String code;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFAF3),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFF0D9B7)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: const Icon(
-              Icons.local_offer_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 9),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 8,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Mã: $code',
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          OutlinedButton(
-            onPressed: () {
-              Get.snackbar(
-                'Voucher',
-                'Đã chọn mã $code.',
-                snackPosition: SnackPosition.BOTTOM,
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(7),
-              ),
-            ),
-            child: const Text(
-              'Dùng',
-              style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccountItem extends StatelessWidget {
-  const _AccountItem({
+class _AccountActionTile extends StatelessWidget {
+  const _AccountActionTile({
     required this.icon,
     required this.title,
     required this.onTap,
@@ -698,24 +852,70 @@ class _AccountItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      leading: Icon(icon, color: AppColors.textSecondary, size: 20),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(icon, color: AppColors.primary),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          color: AppColors.textSecondary,
+        ),
+        onTap: onTap,
       ),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: AppColors.textSecondary,
-        size: 18,
-      ),
-      onTap: onTap,
     );
   }
+}
+
+class _SurfaceCard extends StatelessWidget {
+  const _SurfaceCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withValues(alpha: 0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _MutedMessage extends StatelessWidget {
+  const _MutedMessage(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: Theme.of(context).textTheme.bodyMedium
+          ?.copyWith(color: AppColors.textSecondary),
+    );
+  }
+}
+
+String _formatNumber(int value) {
+  return value.toString().replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (match) => '.',
+  );
 }

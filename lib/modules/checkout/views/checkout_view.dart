@@ -5,6 +5,7 @@ import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../data/models/cart_item_model.dart';
 import '../../../widgets/app_header.dart';
+import '../../../widgets/app_bottom_navigation.dart';
 
 import '../../main/controllers/main_controller.dart';
 import '../controllers/checkout_controller.dart';
@@ -30,10 +31,7 @@ class CheckoutView extends GetView<CheckoutController> {
             Get.find<MainController>().openHistory();
           },
           onProfileTap: () {
-            Get.snackbar(
-              'Tài khoản',
-              'Chức năng tài khoản sẽ được xây dựng sau.',
-            );
+            Get.toNamed(AppRoutes.account);
           },
         ),
       ),
@@ -41,87 +39,68 @@ class CheckoutView extends GetView<CheckoutController> {
       // =========================
       // CHECKOUT CONTENT
       // =========================
-      body: Obx(
-            () {
-          if (controller.cartController.cartItems.isEmpty) {
-            return _buildEmptyCart();
-          }
+      body: Obx(() {
+        if (controller.cartController.cartItems.isEmpty) {
+          return _buildEmptyCart();
+        }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              8,
-              16,
-              20,
-            ),
-            child: Column(
-              children: [
-                _buildCheckoutHeader(),
-                const SizedBox(height: 12),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          child: Column(
+            children: [
+              _buildCheckoutHeader(),
+              const SizedBox(height: 12),
 
-                _buildOrderTypeSection(),
-                const SizedBox(height: 12),
+              _buildOrderTypeSection(),
+              const SizedBox(height: 12),
 
-                _buildContactSection(),
-                const SizedBox(height: 12),
+              _buildContactSection(),
+              const SizedBox(height: 12),
 
-                _buildCartItemsSection(),
-                const SizedBox(height: 12),
+              _buildCartItemsSection(),
+              const SizedBox(height: 12),
 
-                _buildVoucherSection(),
-                const SizedBox(height: 12),
+              _buildVoucherSection(),
+              const SizedBox(height: 12),
 
-                _buildNoteSection(),
-                const SizedBox(height: 12),
+              _buildNoteSection(),
+              const SizedBox(height: 12),
 
-                _buildSummarySection(),
-                const SizedBox(height: 12),
-              ],
-            ),
-          );
-        },
-      ),
+              _buildSummarySection(),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      }),
 
       // =========================
       // BOTTOM ACTION + NAVIGATION
       // =========================
-      bottomNavigationBar: Obx(
-            () {
-          if (controller.cartController.cartItems.isEmpty) {
-            return _buildBottomNavigation();
-          }
+      bottomNavigationBar: Obx(() {
+        if (controller.cartController.cartItems.isEmpty) {
+          return _buildBottomNavigation();
+        }
 
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildBottomButton(),
-              _buildBottomNavigation(),
-            ],
-          );
-        },
-      ),
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [_buildBottomButton(), _buildBottomNavigation()],
+        );
+      }),
     );
   }
 
   Widget _buildCheckoutHeader() {
     return Container(
       width: double.infinity,
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 4,
-        vertical: 8,
-      ),
+      color: AppColors.background,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
       child: Row(
         children: [
           GestureDetector(
             onTap: Get.back,
             child: const Row(
               children: [
-                Icon(
-                  Icons.arrow_back,
-                  size: 20,
-                  color: AppColors.textPrimary,
-                ),
+                Icon(Icons.arrow_back, size: 20, color: AppColors.textPrimary),
                 SizedBox(width: 5),
                 Text(
                   'Quay lại Menu',
@@ -143,10 +122,7 @@ class CheckoutView extends GetView<CheckoutController> {
                 : controller.cartController.clearCart,
             child: const Text(
               'Xóa tất cả',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 13,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
         ],
@@ -169,7 +145,7 @@ class CheckoutView extends GetView<CheckoutController> {
           ),
           const SizedBox(height: 12),
           Obx(
-                () => Row(
+            () => Row(
               children: [
                 Expanded(
                   child: _buildOrderTypeOption(
@@ -200,10 +176,7 @@ class CheckoutView extends GetView<CheckoutController> {
           const SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(8),
@@ -238,18 +211,49 @@ class CheckoutView extends GetView<CheckoutController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Thông tin nhận đơn', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+          const Text(
+            'Thông tin nhận đơn',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 10),
-          TextField(controller: controller.customerNameController, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Tên người nhận')),
+          TextField(
+            controller: controller.customerNameController,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(labelText: 'Tên người nhận'),
+          ),
           const SizedBox(height: 8),
-          TextField(controller: controller.customerPhoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Số điện thoại')),
+          TextField(
+            controller: controller.customerPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Số điện thoại'),
+          ),
           if (controller.selectedOrderType.value == 'delivery') ...[
             const SizedBox(height: 8),
-            TextField(controller: controller.deliveryAddressController, decoration: const InputDecoration(labelText: 'Địa chỉ giao hàng')),
-            Obx(() => Wrap(spacing: 6, children: [
-              ...controller.savedAddresses.map((item) => InputChip(label: Text(item['label']?.toString() ?? 'Đã lưu'), onPressed: () => controller.deliveryAddressController.text = item['address']?.toString() ?? '', onDeleted: () => controller.removeSavedAddress(item))),
-              ActionChip(avatar: const Icon(Icons.bookmark_add_outlined, size: 18), label: const Text('Lưu địa chỉ'), onPressed: controller.saveDeliveryAddress),
-            ])),
+            TextField(
+              controller: controller.deliveryAddressController,
+              decoration: const InputDecoration(labelText: 'Địa chỉ giao hàng'),
+            ),
+            Obx(
+              () => Wrap(
+                spacing: 6,
+                children: [
+                  ...controller.savedAddresses.map(
+                    (item) => InputChip(
+                      label: Text(item['label']?.toString() ?? 'Đã lưu'),
+                      onPressed: () =>
+                          controller.deliveryAddressController.text =
+                              item['address']?.toString() ?? '',
+                      onDeleted: () => controller.removeSavedAddress(item),
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.bookmark_add_outlined, size: 18),
+                    label: const Text('Lưu địa chỉ'),
+                    onPressed: controller.saveDeliveryAddress,
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),
@@ -261,8 +265,7 @@ class CheckoutView extends GetView<CheckoutController> {
     required IconData icon,
     required String title,
   }) {
-    final isSelected =
-        controller.selectedOrderType.value == value;
+    final isSelected = controller.selectedOrderType.value == value;
 
     return GestureDetector(
       onTap: () {
@@ -277,9 +280,7 @@ class CheckoutView extends GetView<CheckoutController> {
               : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.border,
+            color: isSelected ? AppColors.primary : AppColors.border,
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -289,21 +290,15 @@ class CheckoutView extends GetView<CheckoutController> {
             Icon(
               icon,
               size: 22,
-              color: isSelected
-                  ? AppColors.primary
-                  : AppColors.textSecondary,
+              color: isSelected ? AppColors.primary : AppColors.textSecondary,
             ),
             const SizedBox(height: 5),
             Text(
               title,
               style: TextStyle(
                 fontSize: 12,
-                fontWeight: isSelected
-                    ? FontWeight.bold
-                    : FontWeight.normal,
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary,
               ),
             ),
           ],
@@ -318,10 +313,10 @@ class CheckoutView extends GetView<CheckoutController> {
         children: controller.cartController.cartItems
             .map(
               (item) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildCartItem(item),
-          ),
-        )
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildCartItem(item),
+              ),
+            )
             .toList(),
       ),
     );
@@ -335,9 +330,7 @@ class CheckoutView extends GetView<CheckoutController> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -375,19 +368,13 @@ class CheckoutView extends GetView<CheckoutController> {
                   runSpacing: 5,
                   children: [
                     if (customization.sizeId.isNotEmpty)
-                      _buildTag(
-                        'Size ${customization.sizeId}',
-                      ),
+                      _buildTag('Size ${customization.sizeId}'),
                     if (customization.sugarLevelId.isNotEmpty)
-                      _buildTag(
-                        customization.sugarLevelId,
-                      ),
+                      _buildTag(customization.sugarLevelId),
                     if (customization.iceLevelId.isNotEmpty)
-                      _buildTag(
-                        customization.iceLevelId,
-                      ),
+                      _buildTag(customization.iceLevelId),
                     ...customization.toppingIds.map(
-                          (topping) => _buildTag(topping),
+                      (topping) => _buildTag(topping),
                     ),
                   ],
                 ),
@@ -423,10 +410,7 @@ class CheckoutView extends GetView<CheckoutController> {
           color: AppColors.background,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(
-          Icons.local_cafe_outlined,
-          color: AppColors.primary,
-        ),
+        child: const Icon(Icons.local_cafe_outlined, color: AppColors.primary),
       );
     }
 
@@ -454,37 +438,26 @@ class CheckoutView extends GetView<CheckoutController> {
 
   Widget _buildTag(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 7,
-        vertical: 3,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 10,
-          color: AppColors.textSecondary,
-        ),
+        style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
       ),
     );
   }
 
   Widget _buildQuantityControl(CartItemModel item) {
-    final index = controller.cartController.cartItems
-        .indexOf(item);
+    final index = controller.cartController.cartItems.indexOf(item);
 
     return Container(
       height: 32,
       decoration: BoxDecoration(
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -492,44 +465,29 @@ class CheckoutView extends GetView<CheckoutController> {
         children: [
           IconButton(
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 30,
-              minHeight: 30,
-            ),
+            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
             onPressed: () {
               controller.cartController.updateQuantity(
                 index,
                 item.quantity - 1,
               );
             },
-            icon: const Icon(
-              Icons.remove,
-              size: 15,
-            ),
+            icon: const Icon(Icons.remove, size: 15),
           ),
           Text(
             '${item.quantity}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           ),
           IconButton(
             padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(
-              minWidth: 30,
-              minHeight: 30,
-            ),
+            constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
             onPressed: () {
               controller.cartController.updateQuantity(
                 index,
                 item.quantity + 1,
               );
             },
-            icon: const Icon(
-              Icons.add,
-              size: 15,
-            ),
+            icon: const Icon(Icons.add, size: 15),
           ),
         ],
       ),
@@ -551,10 +509,7 @@ class CheckoutView extends GetView<CheckoutController> {
               SizedBox(width: 6),
               Text(
                 'Mã giảm giá / Voucher',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -579,7 +534,7 @@ class CheckoutView extends GetView<CheckoutController> {
                 child: ElevatedButton(
                   onPressed: controller.applyVoucher,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black87,
+                    backgroundColor: AppColors.primaryDark,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(9),
@@ -602,10 +557,7 @@ class CheckoutView extends GetView<CheckoutController> {
         children: [
           const Text(
             'Ghi chú đơn hàng',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
           TextField(
@@ -625,8 +577,7 @@ class CheckoutView extends GetView<CheckoutController> {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Tạm tính (${controller.cartController.totalItems} món)',
@@ -637,9 +588,7 @@ class CheckoutView extends GetView<CheckoutController> {
               ),
               Text(
                 '${controller.subtotal.toStringAsFixed(0)}đ',
-                style: const TextStyle(
-                  fontSize: 13,
-                ),
+                style: const TextStyle(fontSize: 13),
               ),
             ],
           ),
@@ -648,15 +597,11 @@ class CheckoutView extends GetView<CheckoutController> {
             child: Divider(height: 1),
           ),
           Row(
-            mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Tổng thanh toán',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Text(
                 '${controller.total.toStringAsFixed(0)}đ',
@@ -677,12 +622,7 @@ class CheckoutView extends GetView<CheckoutController> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          8,
-          16,
-          12,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         color: Colors.white,
         child: SizedBox(
           height: 50,
@@ -698,15 +638,11 @@ class CheckoutView extends GetView<CheckoutController> {
               ),
             ),
             child: Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'Tiến hành chọn thanh toán',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '${controller.total.toStringAsFixed(0)}đ →',
@@ -723,18 +659,14 @@ class CheckoutView extends GetView<CheckoutController> {
     );
   }
 
-  Widget _buildCard({
-    required Widget child,
-  }) {
+  Widget _buildCard({required Widget child}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: child,
     );
@@ -745,48 +677,37 @@ class CheckoutView extends GetView<CheckoutController> {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisAlignment:
-          MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.shopping_cart_outlined,
               size: 64,
-              color: Colors.grey.shade400,
+              color: AppColors.primary.withValues(alpha: .28),
             ),
             const SizedBox(height: 16),
             const Text(
               'Giỏ hàng đang trống',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             const Text(
               'Vui lòng thêm món trước khi tiếp tục.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: Get.back,
-              child: const Text('Quay lại'),
-            ),
+            ElevatedButton(onPressed: Get.back, child: const Text('Quay lại')),
           ],
         ),
       ),
     );
   }
-  Widget _buildBottomNavigation() {
-    return NavigationBar(
-      selectedIndex: 2,
-      onDestinationSelected: (index) {
-        if (index == 2) {
-          return;
-        }
 
+  Widget _buildBottomNavigation() {
+    return AppBottomNavigation(
+      selectedIndex: 2,
+      orderBadgeCount: controller.cartController.totalItems,
+      onSelected: (index) {
         final mainController = Get.find<MainController>();
 
         Get.offNamed(AppRoutes.main);
@@ -795,33 +716,6 @@ class CheckoutView extends GetView<CheckoutController> {
           mainController.changeTab(index);
         });
       },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Trang chủ',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.local_cafe_outlined),
-          selectedIcon: Icon(Icons.local_cafe),
-          label: 'Đặt món',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.shopping_cart_outlined),
-          selectedIcon: Icon(Icons.shopping_cart),
-          label: 'Giỏ hàng',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.card_membership_outlined),
-          selectedIcon: Icon(Icons.card_membership),
-          label: 'Hội viên',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          selectedIcon: Icon(Icons.receipt_long),
-          label: 'Đơn hàng',
-        ),
-      ],
     );
   }
 }

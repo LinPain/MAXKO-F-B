@@ -5,92 +5,124 @@ import '../app/theme/app_colors.dart';
 class AppHeader extends StatelessWidget {
   const AppHeader({
     super.key,
+    this.onMenuTap,
+    this.onSearchTap,
     this.onNotificationTap,
     this.onHistoryTap,
+    this.onCartTap,
     this.onProfileTap,
   });
 
+  final VoidCallback? onMenuTap;
+  final VoidCallback? onSearchTap;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onHistoryTap;
+  final VoidCallback? onCartTap;
   final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.border,
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(8, 6, 6, 6),
+      color: AppColors.background,
       child: SafeArea(
         bottom: false,
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Text(
-                  'LG',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+            _HeaderAction(
+              icon: Icons.menu_rounded,
+              onPressed: onMenuTap,
+              tooltip: 'Mở danh mục',
             ),
-
-            const SizedBox(width: 10),
-
             const Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'HỒNG TRÀ LÊ GIÁ',
+                    'MAXKO',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: AppColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.3,
                     ),
                   ),
-                  SizedBox(height: 2),
-                  Text(
-                    'PREMIUM TEA & BOBA',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.8,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.local_cafe_rounded,
+                        color: AppColors.primary,
+                        size: 11,
+                      ),
+                      SizedBox(width: 3),
+                      Text(
+                        'F&B GROUP',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            IconButton(
-              onPressed: onNotificationTap,
-              icon: const Icon(Icons.notifications_none,color: AppColors.textPrimary,),
+            _HeaderAction(
+              icon: Icons.search_rounded,
+              onPressed: onSearchTap,
+              tooltip: 'Tìm kiếm',
             ),
-            IconButton(
-              onPressed: onHistoryTap,
-              icon: const Icon(Icons.history_rounded,color: AppColors.textPrimary,),
+            _HeaderAction(
+              icon: onCartTap == null
+                  ? Icons.receipt_long_outlined
+                  : Icons.shopping_bag_outlined,
+              onPressed: onCartTap ?? onHistoryTap,
+              tooltip: onCartTap == null ? 'Lịch sử đơn hàng' : 'Giỏ hàng',
             ),
-            IconButton(
+            _HeaderAction(
+              icon: Icons.person_outline_rounded,
               onPressed: onProfileTap,
-              icon: const Icon(Icons.person_outline_rounded,color: AppColors.textPrimary,),
+              tooltip: 'Tài khoản',
+              accent: true,
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.icon,
+    required this.onPressed,
+    required this.tooltip,
+    this.accent = false,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final String tooltip;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      constraints: const BoxConstraints.tightFor(width: 42, height: 42),
+      padding: EdgeInsets.zero,
+      style: IconButton.styleFrom(
+        backgroundColor: accent ? AppColors.primary : Colors.transparent,
+        foregroundColor: accent ? Colors.white : AppColors.textPrimary,
+      ),
+      icon: Icon(icon, size: 21),
     );
   }
 }

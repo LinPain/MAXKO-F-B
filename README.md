@@ -1,6 +1,6 @@
-# hong_tra_le_gia
+# MAXKO F&B Mobile
 
-A new Flutter project.
+MAXKO F&B customer app for discovering brands, ordering, tracking orders, and managing membership.
 
 ## Getting Started
 

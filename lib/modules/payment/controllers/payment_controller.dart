@@ -6,17 +6,14 @@ import '../../../data/models/order_status.dart';
 import '../../cart/controllers/cart_controller.dart';
 import '../../main/controllers/main_controller.dart';
 import '../../orders/controllers/orders_controller.dart';
-import '../../../data/providers/api_client.dart';
 
 class PaymentController extends GetxController {
   final CartController cartController;
   final OrdersController ordersController;
-  final ApiClient apiProvider;
 
   PaymentController({
     required this.cartController,
     required this.ordersController,
-    required this.apiProvider,
   });
 
   final selectedPaymentMethod = 'cash'.obs;
@@ -69,42 +66,31 @@ class PaymentController extends GetxController {
     isSubmitting.value = true;
     try {
       const method = 'CASH';
-      final items = cartController.cartItems
-          .map((item) => {...item.toJson(), 'totalPrice': item.totalPrice})
-          .toList();
-      final response = await apiProvider.post(
-        '/api/orders',
-        body: {
-          'branchId': 'b-cau-giay',
-          'orderType': checkout['orderType'] ?? 'TAKEAWAY',
-          'source': 'APP',
-          'customerName': checkout['customerName'] ?? '',
-          'customerPhone': checkout['customerPhone'] ?? '',
-          'deliveryAddress': checkout['deliveryAddress'] ?? '',
-          'note': checkout['note'] ?? '',
-          'items': items,
-          'paymentMethod': method,
-          'voucherCode': checkout['voucherCode'] ?? '',
-        },
-      );
-      if (response is! Map) {
-        throw Exception('Máy chủ trả về đơn hàng không hợp lệ.');
-      }
+      final now = DateTime.now();
+      final orderCode = now.millisecondsSinceEpoch
+          .toRadixString(36)
+          .toUpperCase();
       final order = OrderModel(
-        id: response['id']?.toString() ?? '',
-        branchName: 'Hồng Trà Lê Gia',
+        id: 'local-$orderCode',
+        orderNumber: 'MK-$orderCode',
+        branchName: 'MAXKO F&B',
         items: List.from(cartController.cartItems),
         subtotal: cartController.subtotal,
-        total: (response['finalTotal'] as num?)?.toDouble() ?? total,
+        total: total,
         orderType: checkout['orderType']?.toString() ?? 'TAKEAWAY',
         paymentMethod: method,
         status: OrderStatus.submitted,
-        createdAt: DateTime.tryParse(response['createdAt']?.toString() ?? ''),
+        createdAt: now,
       );
       ordersController.setCurrentOrder(order);
       cartController.clearCart();
-      Get.offNamed(AppRoutes.main);
-      Future.microtask(() => Get.find<MainController>().changeTab(4));
+      Get.snackbar(
+        'Đã xác nhận đơn',
+        'Đơn thử nghiệm ${order.orderNumber} đã được chuyển sang Đơn hàng.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      Get.offAllNamed(AppRoutes.main);
+      Future.microtask(() => Get.find<MainController>().changeTab(3));
     } catch (error) {
       Get.snackbar(
         'Không thể tạo đơn hàng',

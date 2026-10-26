@@ -2,13 +2,12 @@ import 'package:get/get.dart';
 
 import '../../../data/models/order_model.dart';
 import '../../../data/models/order_status.dart';
-import '../../../data/providers/api_client.dart';
+import '../../../data/models/cart_item_model.dart';
+import '../../../data/models/product_customization_model.dart';
 import '../../cart/controllers/cart_controller.dart';
 
 class OrdersController extends GetxController {
-  OrdersController({required this.apiProvider});
-
-  final ApiClient apiProvider;
+  OrdersController();
   // Current active order
   final currentOrder = Rxn<OrderModel>();
 
@@ -25,48 +24,66 @@ class OrdersController extends GetxController {
 
   Future<void> loadMyOrders() async {
     historyError.value = '';
-    if (!await apiProvider.hasAccessToken()) {
-      orderHistory.clear();
-      return;
-    }
-    try {
-      final data = await apiProvider.get('/api/orders/my-orders');
-      if (data is List) {
-        orderHistory.assignAll(
-          data
-              .whereType<Map<String, dynamic>>()
-              .map(OrderModel.fromJson)
-              .where((order) => order.status == OrderStatus.completed),
-        );
-      }
-    } catch (_) {
-      historyError.value = 'Không tải được lịch sử đơn hàng. Kiểm tra kết nối hoặc đăng nhập rồi thử lại.';
+    if (currentOrder.value == null && orderHistory.isEmpty) {
+      final now = DateTime.now();
+      const demoItem = CartItemModel(
+        productId: 'demo-matcha',
+        productName: 'Trà Sữa Matcha',
+        unitPrice: 42000,
+        imageUrl: '',
+        quantity: 2,
+        customization: ProductCustomizationModel(
+          sizeId: 'size-l',
+          sugarLevelId: 'sugar-50',
+          iceLevelId: 'ice-normal',
+          toppingIds: ['topping-pearl'],
+          note: '',
+        ),
+      );
+      currentOrder.value = OrderModel(
+        id: 'demo-active-order',
+        orderNumber: 'MK-DEMO01',
+        branchName: 'MAXKO Tea · Cầu Giấy',
+        items: const [demoItem],
+        subtotal: 94000,
+        total: 94000,
+        orderType: 'DELIVERY',
+        paymentMethod: 'CASH',
+        status: OrderStatus.outForDelivery,
+        createdAt: now,
+      );
+      orderHistory.add(
+        OrderModel(
+          id: 'demo-completed-order',
+          orderNumber: 'MK-DEMO00',
+          branchName: 'Tokki Korean · Hà Nội',
+          items: const [demoItem],
+          subtotal: 42000,
+          total: 42000,
+          orderType: 'TAKEAWAY',
+          paymentMethod: 'CASH',
+          status: OrderStatus.completed,
+          createdAt: now.subtract(const Duration(days: 2)),
+        ),
+      );
     }
   }
 
   Future<void> refreshCurrentOrder() async {
     final current = currentOrder.value;
-    if (current == null || current.id.isEmpty || isRefreshingOrder.value) {
+    if (current == null || isRefreshingOrder.value) {
       return;
     }
 
     isRefreshingOrder.value = true;
     try {
-      final data = await apiProvider.get('/api/orders/${current.id}');
-      if (data is Map) {
-        final payload = Map<String, dynamic>.from(data);
-        payload['items'] = current.items.map((item) => item.toJson()).toList();
-        final updatedOrder = OrderModel.fromJson(payload);
-        if (updatedOrder.status == OrderStatus.completed) {
-          orderHistory.removeWhere((item) => item.id == updatedOrder.id);
-          orderHistory.insert(0, updatedOrder);
-          currentOrder.value = null;
-        } else {
-          currentOrder.value = updatedOrder;
-        }
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      final nextIndex = current.status.index + 1;
+      if (nextIndex < OrderStatus.completed.index) {
+        updateCurrentOrderStatus(OrderStatus.values[nextIndex]);
+      } else {
+        completeCurrentOrder();
       }
-    } catch (_) {
-      // Leave the last known order visible if the server cannot be reached.
     } finally {
       isRefreshingOrder.value = false;
     }
@@ -75,21 +92,12 @@ class OrdersController extends GetxController {
   Future<void> cancelCurrentOrder() async {
     final order = currentOrder.value;
     if (order == null) return;
-    try {
-      await apiProvider.patch('/api/orders/${order.id}/cancel');
-      currentOrder.value = null;
-      Get.snackbar(
-        'Đã hủy đơn',
-        'Đơn hàng của bạn đã được hủy.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } catch (error) {
-      Get.snackbar(
-        'Không thể hủy đơn',
-        error.toString().replaceFirst('Exception: ', ''),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
+    currentOrder.value = null;
+    Get.snackbar(
+      'Đã hủy đơn xem trước',
+      'Đơn demo đã được hủy trên màn hình này.',
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   void reorder(OrderModel order) {
@@ -129,6 +137,7 @@ class OrdersController extends GetxController {
 
     final updatedOrder = OrderModel(
       id: order.id,
+      orderNumber: order.orderNumber,
       branchName: order.branchName,
       items: order.items,
       subtotal: order.subtotal,
@@ -156,6 +165,7 @@ class OrdersController extends GetxController {
 
     final completedOrder = OrderModel(
       id: order.id,
+      orderNumber: order.orderNumber,
       branchName: order.branchName,
       items: order.items,
       subtotal: order.subtotal,

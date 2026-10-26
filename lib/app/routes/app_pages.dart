@@ -26,7 +26,7 @@ class AppPages {
   static final routes = [
     GetPage(
       name: AppRoutes.main,
-      page: () => const MainView(),
+      page: () => MainView(),
       binding: MainBinding(),
     ),
 

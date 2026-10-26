@@ -3,13 +3,11 @@ import 'package:get/get.dart';
 
 import '../../cart/controllers/cart_controller.dart';
 import '../../../app/routes/app_routes.dart';
-import '../../../data/providers/api_client.dart';
 
 class CheckoutController extends GetxController {
   final CartController cartController;
-  final ApiClient apiProvider;
 
-  CheckoutController({required this.cartController, required this.apiProvider});
+  CheckoutController({required this.cartController});
 
   final selectedOrderType = ''.obs;
 
@@ -33,14 +31,11 @@ class CheckoutController extends GetxController {
   }
 
   Future<void> loadSavedAddresses() async {
-    try {
-      final data = await apiProvider.get('/api/customers/me/addresses');
-      if (data is List) {
-        savedAddresses.assignAll(
-          data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
-        );
-      }
-    } catch (_) {}
+    if (savedAddresses.isEmpty) {
+      savedAddresses.assignAll([
+        {'label': 'Nhà', 'address': '128 Cầu Giấy, Hà Nội'},
+      ]);
+    }
   }
 
   Future<void> saveDeliveryAddress() async {
@@ -71,18 +66,10 @@ class CheckoutController extends GetxController {
         ...savedAddresses.map((item) => Map<String, dynamic>.from(item)),
         {'label': savedAddresses.isEmpty ? 'Nhà' : 'Khác', 'address': address},
       ];
-      final data = await apiProvider.put(
-        '/api/customers/me/addresses',
-        body: {'addresses': addresses},
-      );
-      if (data is List) {
-        savedAddresses.assignAll(
-          data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
-        );
-      }
+      savedAddresses.assignAll(addresses);
       Get.snackbar(
         'Đã lưu địa chỉ',
-        'Địa chỉ được lưu vào tài khoản của bạn.',
+        'Địa chỉ được lưu tạm trong phiên xem trước này.',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (error) {
@@ -101,23 +88,7 @@ class CheckoutController extends GetxController {
         .where((item) => item['address'] != address['address'])
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
-    try {
-      final data = await apiProvider.put(
-        '/api/customers/me/addresses',
-        body: {'addresses': updated},
-      );
-      if (data is List) {
-        savedAddresses.assignAll(
-          data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
-        );
-      }
-    } catch (error) {
-      Get.snackbar(
-        'Không thể xóa địa chỉ',
-        error.toString().replaceFirst('Exception: ', ''),
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    }
+    savedAddresses.assignAll(updated);
   }
 
   double get subtotal => cartController.subtotal;
@@ -149,15 +120,17 @@ class CheckoutController extends GetxController {
 
     try {
       isApplyingVoucher.value = true;
-      final data = await apiProvider.post(
-        '/api/customers/vouchers/validate',
-        body: {'code': voucher, 'orderTotal': subtotal},
-      );
-      if (data is! Map || data['isValid'] != true) {
-        throw Exception('Voucher không hợp lệ.');
+      final code = voucher.toUpperCase();
+      if (code == 'MAXKO20' && subtotal >= 80000) {
+        discountAmount.value = subtotal * 0.2;
+      } else if (code == 'FREESHIP' && deliveryFee > 0) {
+        discountAmount.value = deliveryFee;
+      } else {
+        throw Exception(
+          'Dùng MAXKO20 cho đơn từ 80.000đ hoặc FREESHIP cho đơn giao hàng.',
+        );
       }
-      discountAmount.value = (data['discountAmount'] as num?)?.toDouble() ?? 0;
-      appliedVoucher.value = voucher.toUpperCase();
+      appliedVoucher.value = code;
       Get.snackbar(
         'Đã áp dụng voucher',
         'Bạn được giảm ${discountAmount.value.toStringAsFixed(0)}đ.',

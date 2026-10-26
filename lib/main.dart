@@ -6,17 +6,17 @@ import 'app/routes/app_routes.dart';
 import 'app/theme/app_theme.dart';
 
 void main() {
-  runApp(const HongTraLeGiaApp());
+  runApp(const MaxkoApp());
 }
-class HongTraLeGiaApp extends StatelessWidget{
-  const HongTraLeGiaApp({super.key});
+class MaxkoApp extends StatelessWidget {
+  const MaxkoApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
 
-        title: 'Hông Trà Lê Gia',
+        title: 'MAXKO F&B',
 
         theme: AppTheme.light,
 

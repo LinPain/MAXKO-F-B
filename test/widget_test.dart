@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hong_tra_le_gia/main.dart';
+import 'package:maxko_fb/main.dart';
 
 void main() {
   testWidgets('main app opens its primary navigation', (tester) async {
-    await tester.pumpWidget(const HongTraLeGiaApp());
+    await tester.pumpWidget(const MaxkoApp());
     await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('Trang chủ'), findsOneWidget);

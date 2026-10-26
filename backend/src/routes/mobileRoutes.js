@@ -19,7 +19,7 @@ const optionalAuth = async (req, res, next) => {
 
 const router = express.Router();
 const hash = (token) => crypto.createHash('sha256').update(token).digest('hex');
-const safeCustomer = (customer) => ({ id: customer.id, name: customer.name, phone: customer.phone, email: customer.email, role: customer.role, membershipTier: customer.membershipTier, loyaltyPoints: customer.loyaltyPoints });
+const safeCustomer = (customer) => ({ id: customer.id, name: customer.name, phone: customer.phone, email: customer.email, birthday: customer.birthday || null, gender: customer.gender || 'unspecified', role: customer.role, membershipTier: customer.membershipTier, loyaltyPoints: customer.loyaltyPoints });
 const success = (res, data, message) => res.json({ success: true, ...(message ? { message } : {}), data });
 async function issueTokens(customer) {
   const refreshToken = crypto.randomBytes(48).toString('hex');
@@ -27,12 +27,12 @@ async function issueTokens(customer) {
   await customer.save();
   return { user: safeCustomer(customer), accessToken: jwt.sign({ sub: customer.id, role: customer.role }, process.env.JWT_SECRET, { expiresIn: '15m' }), refreshToken, expiresIn: 900 };
 }
-const branches = [{ id: 'b-cau-giay', name: 'Hồng Trà Lê Gia - Cầu Giấy', address: '123 Cầu Giấy, P. Quan Hoa, Q. Cầu Giấy, Hà Nội', phone: '024 3838 9999', isOpen: true, openTime: '08:00', closeTime: '22:30', gps: { latitude: 21.036237, longitude: 105.790583 } }];
+const branches = [{ id: 'b-cau-giay', name: 'MAXKO F&B - Cầu Giấy', address: '123 Cầu Giấy, P. Quan Hoa, Q. Cầu Giấy, Hà Nội', phone: '024 3838 9999', isOpen: true, openTime: '08:00', closeTime: '22:30', gps: { latitude: 21.036237, longitude: 105.790583 } }];
 async function seedDemoVoucher() {
   if (process.env.NODE_ENV === 'production') return;
   const now = new Date();
   const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  await Voucher.updateOne({ code: 'LEGIA20' }, { $setOnInsert: { code: 'LEGIA20', title: 'Ưu đãi khách hàng mới', discountPercent: 20, maxDiscount: 30000, minOrderTotal: 0, startDate: now, endDate, isActive: true } }, { upsert: true });
+  await Voucher.updateOne({ code: 'MAXKO20' }, { $setOnInsert: { code: 'MAXKO20', title: 'Ưu đãi khách hàng mới', discountPercent: 20, maxDiscount: 30000, minOrderTotal: 0, startDate: now, endDate, isActive: true } }, { upsert: true });
 }
 
 router.post('/auth/register/request-code', async (req, res, next) => {
@@ -74,9 +74,9 @@ router.post('/auth/register/request-code', async (req, res, next) => {
       await transporter.sendMail({
         from,
         to: email,
-        subject: 'Xác thực email đăng ký - Hồng Trà Lê Gia',
+        subject: 'Xác thực email đăng ký - MAXKO F&B',
         text: `Mã xác thực đăng ký của bạn là ${code}. Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.`,
-        html: `<div style="font-family:Arial,sans-serif;color:#222"><h2>Hồng Trà Lê Gia</h2><p>Mã xác thực email đăng ký:</p><p style="font-size:28px;font-weight:bold;letter-spacing:8px;color:#a94700">${code}</p><p>Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p></div>`,
+        html: `<div style="font-family:Arial,sans-serif;color:#222"><h2>MAXKO F&amp;B GROUP</h2><p>Mã xác thực email đăng ký:</p><p style="font-size:28px;font-weight:bold;letter-spacing:8px;color:#f95721">${code}</p><p>Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p></div>`,
       });
     } catch (mailError) {
       await verification.deleteOne();
@@ -187,9 +187,9 @@ router.post('/auth/forgot-password', async (req, res, next) => {
       await transporter.sendMail({
         from,
         to: customer.email,
-        subject: 'Mã xác thực đặt lại mật khẩu - Hồng Trà Lê Gia',
+        subject: 'Mã xác thực đặt lại mật khẩu - MAXKO F&B',
         text: `Mã xác thực đặt lại mật khẩu của bạn là ${code}. Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.`,
-        html: `<div style="font-family:Arial,sans-serif;color:#222"><h2>Hồng Trà Lê Gia</h2><p>Mã xác thực đặt lại mật khẩu của bạn:</p><p style="font-size:28px;font-weight:bold;letter-spacing:8px;color:#a94700">${code}</p><p>Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p></div>`,
+        html: `<div style="font-family:Arial,sans-serif;color:#222"><h2>MAXKO F&amp;B GROUP</h2><p>Mã xác thực đặt lại mật khẩu của bạn:</p><p style="font-size:28px;font-weight:bold;letter-spacing:8px;color:#f95721">${code}</p><p>Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p></div>`,
       });
     } catch (mailError) {
       customer.passwordResetCodeHash = null;
@@ -259,7 +259,7 @@ router.get('/bootstrap', async (req, res, next) => {
     success(res, { branches, categories, products, toppings, vouchers, campaigns: [] });
   } catch (error) { next(error); }
 });
-router.get('/customers/campaigns', (req, res) => success(res, [{ id: 'camp-legia20', title: 'Ưu đãi khách hàng mới', bannerUrl: '', startDate: new Date().toISOString().slice(0, 10), endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), voucherCode: 'LEGIA20' }]));
+router.get('/customers/campaigns', (req, res) => success(res, [{ id: 'camp-maxko20', title: 'Ưu đãi khách hàng mới', bannerUrl: '', startDate: new Date().toISOString().slice(0, 10), endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), voucherCode: 'MAXKO20' }]));
 router.get('/customers/vouchers', async (req, res, next) => {
   try { await seedDemoVoucher(); success(res, await Voucher.find({ isActive: true }).lean()); } catch (error) { next(error); }
 });
@@ -378,6 +378,63 @@ router.put('/customers/me/addresses', requireAuth, async (req, res, next) => {
     req.customer.savedAddresses = addresses.map((item, index) => ({ label: String(item.label || 'Nhà').trim(), address: String(item.address).trim(), isDefault: index === 0 }));
     await req.customer.save();
     success(res, req.customer.savedAddresses, 'Đã lưu địa chỉ.');
+  } catch (error) { next(error); }
+});
+
+// Profile and notification settings used by the account experience.
+router.get('/customers/me/profile', requireAuth, (req, res) => success(res, safeCustomer(req.customer)));
+router.patch('/customers/me/profile', requireAuth, async (req, res, next) => {
+  try {
+    const updates = {};
+    if (Object.prototype.hasOwnProperty.call(req.body, 'name')) {
+      const name = String(req.body.name || '').trim();
+      if (!name || name.length > 100) return res.status(400).json({ success: false, error: 'Họ tên phải có từ 1 đến 100 ký tự.', code: 'VALIDATION_ERROR' });
+      updates.name = name;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'phone')) {
+      const phone = String(req.body.phone || '').trim();
+      if (!/^\+?[0-9 .()-]{8,20}$/.test(phone)) return res.status(400).json({ success: false, error: 'Số điện thoại chưa hợp lệ.', code: 'VALIDATION_ERROR' });
+      const existing = await Customer.findOne({ phone, _id: { $ne: req.customer._id } }).select('_id').lean();
+      if (existing) return res.status(409).json({ success: false, error: 'Số điện thoại đã được sử dụng.', code: 'PHONE_ALREADY_USED' });
+      updates.phone = phone;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'birthday')) {
+      if (req.body.birthday === null || req.body.birthday === '') updates.birthday = null;
+      else {
+        const birthday = new Date(req.body.birthday);
+        if (Number.isNaN(birthday.getTime()) || birthday > new Date()) return res.status(400).json({ success: false, error: 'Ngày sinh chưa hợp lệ.', code: 'VALIDATION_ERROR' });
+        updates.birthday = birthday;
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, 'gender')) {
+      const gender = String(req.body.gender || 'unspecified').toLowerCase();
+      if (!['female', 'male', 'other', 'unspecified'].includes(gender)) return res.status(400).json({ success: false, error: 'Giá trị giới tính chưa hợp lệ.', code: 'VALIDATION_ERROR' });
+      updates.gender = gender;
+    }
+    Object.assign(req.customer, updates);
+    await req.customer.save();
+    success(res, safeCustomer(req.customer), 'Đã cập nhật hồ sơ.');
+  } catch (error) { next(error); }
+});
+
+router.get('/customers/me/notification-preferences', requireAuth, (req, res) => success(res, {
+  push: req.customer.notificationPreferences?.push ?? true,
+  email: req.customer.notificationPreferences?.email ?? true,
+  sms: req.customer.notificationPreferences?.sms ?? false,
+}));
+router.put('/customers/me/notification-preferences', requireAuth, async (req, res, next) => {
+  try {
+    const current = req.customer.notificationPreferences || {};
+    const preferences = { push: current.push ?? true, email: current.email ?? true, sms: current.sms ?? false };
+    for (const key of Object.keys(preferences)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) {
+        if (typeof req.body[key] !== 'boolean') return res.status(400).json({ success: false, error: `Giá trị ${key} phải là true hoặc false.`, code: 'VALIDATION_ERROR' });
+        preferences[key] = req.body[key];
+      }
+    }
+    req.customer.notificationPreferences = preferences;
+    await req.customer.save();
+    success(res, preferences, 'Đã lưu tùy chọn thông báo.');
   } catch (error) { next(error); }
 });
 

@@ -6,8 +6,7 @@ import '../../../app/theme/app_colors.dart';
 import '../../../data/models/product_option_model.dart';
 import '../controllers/product_detail_controller.dart';
 
-class ProductDetailView
-    extends GetView<ProductDetailController> {
+class ProductDetailView extends GetView<ProductDetailController> {
   const ProductDetailView({super.key});
 
   @override
@@ -21,8 +20,7 @@ class ProductDetailView
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeaderImage(),
                     _buildProductInformation(),
@@ -71,11 +69,7 @@ class ProductDetailView
                 color: Colors.black.withValues(alpha: 0.55),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.close,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 20),
             ),
           ),
         ),
@@ -87,20 +81,16 @@ class ProductDetailView
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.primary,
               borderRadius: BorderRadius.circular(4),
             ),
             child: const Text(
-              'HỒNG TRÀ LÊ GIA',
+              'MAXKO F&B GROUP',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 10,
@@ -136,7 +126,7 @@ class ProductDetailView
   // ------------------------------------------------------------
 
   Widget _buildSizeSection() {
-    final options = controller.product.sizes;
+    final options = controller.sizes;
 
     if (options.isEmpty) {
       return const SizedBox.shrink();
@@ -144,8 +134,7 @@ class ProductDetailView
 
     return _buildSectionContainer(
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle(
             number: '1.',
@@ -154,12 +143,10 @@ class ProductDetailView
           ),
           const SizedBox(height: 10),
           Obx(
-                () => _buildOptionRow(
+            () => _buildOptionRow(
               options: options,
-              selected:
-              controller.selectedSize.value,
-              onSelected:
-              controller.selectSize,
+              selected: controller.selectedSize.value,
+              onSelected: controller.selectSize,
             ),
           ),
         ],
@@ -172,7 +159,7 @@ class ProductDetailView
   // ------------------------------------------------------------
 
   Widget _buildSugarSection() {
-    final options = controller.product.sugarLevels;
+    final options = controller.sugarLevels;
 
     if (options.isEmpty) {
       return const SizedBox.shrink();
@@ -180,23 +167,19 @@ class ProductDetailView
 
     return _buildSectionContainer(
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle(
             number: '2.',
             title: 'Độ ngọt (Đường mía)',
-            currentValue:
-            controller.selectedSugar.value?.name,
+            currentValue: controller.selectedSugar.value?.name,
           ),
           const SizedBox(height: 10),
           Obx(
-                () => _buildChoiceRow(
+            () => _buildChoiceRow(
               options: options,
-              selected:
-              controller.selectedSugar.value,
-              onSelected:
-              controller.selectSugar,
+              selected: controller.selectedSugar.value,
+              onSelected: controller.selectSugar,
             ),
           ),
         ],
@@ -209,7 +192,7 @@ class ProductDetailView
   // ------------------------------------------------------------
 
   Widget _buildIceSection() {
-    final options = controller.product.iceLevels;
+    final options = controller.iceLevels;
 
     if (options.isEmpty) {
       return const SizedBox.shrink();
@@ -217,23 +200,19 @@ class ProductDetailView
 
     return _buildSectionContainer(
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle(
             number: '3.',
             title: 'Lượng đá / Nhiệt độ',
-            currentValue:
-            controller.selectedIce.value?.name,
+            currentValue: controller.selectedIce.value?.name,
           ),
           const SizedBox(height: 10),
           Obx(
-                () => _buildChoiceRow(
+            () => _buildChoiceRow(
               options: options,
-              selected:
-              controller.selectedIce.value,
-              onSelected:
-              controller.selectIce,
+              selected: controller.selectedIce.value,
+              onSelected: controller.selectIce,
             ),
           ),
         ],
@@ -246,7 +225,7 @@ class ProductDetailView
   // ------------------------------------------------------------
 
   Widget _buildToppingSection() {
-    final options = controller.product.toppings;
+    final options = controller.toppings;
 
     if (options.isEmpty) {
       return const SizedBox.shrink();
@@ -254,33 +233,22 @@ class ProductDetailView
 
     return _buildSectionContainer(
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSectionTitle(
             number: '4.',
             title: 'Topping hấp dẫn (Tùy chọn)',
-            currentValue:
-            'Đã chọn (${controller.selectedToppings.length})',
+            currentValue: 'Đã chọn (${controller.selectedToppings.length})',
           ),
           const SizedBox(height: 8),
-          Obx(
-                () => Column(
-              children: options
-                  .map(_buildToppingItem)
-                  .toList(),
-            ),
-          ),
+          Obx(() => Column(children: options.map(_buildToppingItem).toList())),
         ],
       ),
     );
   }
 
-  Widget _buildToppingItem(
-      ProductOptionModel option,
-      ) {
-    final selected =
-    controller.selectedToppings.contains(option);
+  Widget _buildToppingItem(ProductOptionModel option) {
+    final selected = controller.selectedToppings.contains(option);
 
     return GestureDetector(
       onTap: () {
@@ -290,15 +258,11 @@ class ProductDetailView
         width: double.infinity,
         height: 43,
         margin: const EdgeInsets.only(bottom: 7),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 9,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 9),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(9),
-          border: Border.all(
-            color: AppColors.border,
-          ),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -306,22 +270,14 @@ class ProductDetailView
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: selected
-                    ? AppColors.primary
-                    : Colors.white,
+                color: selected ? AppColors.primary : Colors.white,
                 borderRadius: BorderRadius.circular(4),
                 border: Border.all(
-                  color: selected
-                      ? AppColors.primary
-                      : Colors.grey.shade400,
+                  color: selected ? AppColors.primary : Colors.grey.shade400,
                 ),
               ),
               child: selected
-                  ? const Icon(
-                Icons.check,
-                size: 12,
-                color: Colors.white,
-              )
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 9),
@@ -357,8 +313,7 @@ class ProductDetailView
   Widget _buildNoteSection() {
     return _buildSectionContainer(
       child: Column(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             '5. Ghi chú cho quán (Barista)',
@@ -370,18 +325,15 @@ class ProductDetailView
           ),
           const SizedBox(height: 8),
           TextField(
-            controller:
-            controller.noteController,
+            controller: controller.noteController,
             maxLines: 1,
             decoration: const InputDecoration(
-              hintText:
-              'VD: Không lấy ống hút nhựa, cho nhiều trân châu...',
+              hintText: 'VD: Không lấy ống hút nhựa, cho nhiều trân châu...',
               hintStyle: TextStyle(
                 fontSize: 11,
                 color: AppColors.textSecondary,
               ),
-              contentPadding:
-              EdgeInsets.symmetric(
+              contentPadding: EdgeInsets.symmetric(
                 horizontal: 12,
                 vertical: 12,
               ),
@@ -398,19 +350,12 @@ class ProductDetailView
 
   Widget _buildBottomBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        12,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(
-              alpha: 0.08,
-            ),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -422,31 +367,21 @@ class ProductDetailView
           const SizedBox(width: 12),
           Expanded(
             child: Obx(
-                  () => SizedBox(
+              () => SizedBox(
                 height: 45,
                 child: ElevatedButton(
-                  onPressed:
-                  controller.isValid
-                      ? _addToCart
-                      : null,
+                  onPressed: controller.isValid ? _addToCart : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                    AppColors.primary,
-                    foregroundColor:
-                    Colors.white,
-                    disabledBackgroundColor:
-                    Colors.grey.shade300,
-                    disabledForegroundColor:
-                    Colors.grey.shade600,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    disabledForegroundColor: Colors.grey.shade600,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                      BorderRadius.circular(11),
+                      borderRadius: BorderRadius.circular(11),
                     ),
                   ),
                   child: Row(
-                    mainAxisAlignment:
-                    MainAxisAlignment
-                        .spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'Thêm vào giỏ',
@@ -456,9 +391,7 @@ class ProductDetailView
                         ),
                       ),
                       Text(
-                        _formatPrice(
-                          controller.totalPrice,
-                        ),
+                        _formatPrice(controller.totalPrice),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -480,48 +413,28 @@ class ProductDetailView
       height: 45,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(10),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           IconButton(
-            onPressed:
-            controller.decreaseQuantity,
-            icon: const Icon(
-              Icons.remove,
-              size: 16,
-            ),
+            onPressed: controller.decreaseQuantity,
+            icon: const Icon(Icons.remove, size: 16),
             padding: EdgeInsets.zero,
-            constraints:
-            const BoxConstraints(
-              minWidth: 32,
-            ),
+            constraints: const BoxConstraints(minWidth: 32),
           ),
           Obx(
-                () => Text(
+            () => Text(
               '${controller.quantity.value}',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ),
           IconButton(
-            onPressed:
-            controller.increaseQuantity,
-            icon: const Icon(
-              Icons.add,
-              size: 16,
-            ),
+            onPressed: controller.increaseQuantity,
+            icon: const Icon(Icons.add, size: 16),
             padding: EdgeInsets.zero,
-            constraints:
-            const BoxConstraints(
-              minWidth: 32,
-            ),
+            constraints: const BoxConstraints(minWidth: 32),
           ),
         ],
       ),
@@ -532,14 +445,9 @@ class ProductDetailView
   // SHARED COMPONENTS
   // ------------------------------------------------------------
 
-  Widget _buildSectionContainer({
-    required Widget child,
-  }) {
+  Widget _buildSectionContainer({required Widget child}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 7,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
       child: child,
     );
   }
@@ -554,10 +462,7 @@ class ProductDetailView
       children: [
         Text(
           number,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 3),
         Expanded(
@@ -573,10 +478,7 @@ class ProductDetailView
         if (required)
           const Text(
             'Bắt buộc',
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.primary,
-            ),
+            style: TextStyle(fontSize: 11, color: AppColors.primary),
           )
         else if (currentValue != null)
           Text(
@@ -593,16 +495,13 @@ class ProductDetailView
   Widget _buildOptionRow({
     required List<ProductOptionModel> options,
     required ProductOptionModel? selected,
-    required ValueChanged<ProductOptionModel>
-    onSelected,
+    required ValueChanged<ProductOptionModel> onSelected,
   }) {
     return Row(
       children: options.map((option) {
         return Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(
-              right: 8,
-            ),
+            padding: const EdgeInsets.only(right: 8),
             child: _buildOptionButton(
               option: option,
               selected: selected == option,
@@ -619,16 +518,13 @@ class ProductDetailView
   Widget _buildChoiceRow({
     required List<ProductOptionModel> options,
     required ProductOptionModel? selected,
-    required ValueChanged<ProductOptionModel>
-    onSelected,
+    required ValueChanged<ProductOptionModel> onSelected,
   }) {
     return Row(
       children: options.map((option) {
         return Expanded(
           child: Padding(
-            padding: const EdgeInsets.only(
-              right: 7,
-            ),
+            padding: const EdgeInsets.only(right: 7),
             child: _buildOptionButton(
               option: option,
               selected: selected == option,
@@ -648,38 +544,27 @@ class ProductDetailView
     required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: option.isAvailable
-          ? onTap
-          : null,
+      onTap: option.isAvailable ? onTap : null,
       child: Container(
         height: 45,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.primary
-              : Colors.white,
-          borderRadius:
-          BorderRadius.circular(9),
+          color: selected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(9),
           border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : AppColors.border,
+            color: selected ? AppColors.primary : AppColors.border,
           ),
         ),
         child: Column(
-          mainAxisAlignment:
-          MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               option.name,
               maxLines: 1,
-              overflow:
-              TextOverflow.ellipsis,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 10,
-                color: selected
-                    ? Colors.white
-                    : AppColors.textPrimary,
+                color: selected ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -688,9 +573,7 @@ class ProductDetailView
                 '+${_formatPrice(option.extraPrice)}',
                 style: TextStyle(
                   fontSize: 9,
-                  color: selected
-                      ? Colors.white70
-                      : AppColors.textSecondary,
+                  color: selected ? Colors.white70 : AppColors.textSecondary,
                 ),
               ),
           ],

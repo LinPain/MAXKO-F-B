@@ -43,7 +43,7 @@ class SignupView extends GetView<AuthController> {
                   const SizedBox(height: 8),
 
                   const Text(
-                    'Tham gia Hồng Trà Lê Gia ngay hôm nay',
+                    'Tham gia MAXKO F&B ngay hôm nay',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -91,7 +91,7 @@ class SignupView extends GetView<AuthController> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 16),
-                        _buildLabel('Mã xác thực email'),
+                        _buildLabel('Mã xác thực demo'),
                         const SizedBox(height: 8),
                         TextField(
                           controller: controller.signupCodeController,
@@ -101,7 +101,7 @@ class SignupView extends GetView<AuthController> {
                           autofillHints: const [AutofillHints.oneTimeCode],
                           maxLength: 6,
                           decoration: _inputDecoration(
-                            hintText: 'Nhập mã gồm 6 chữ số',
+                            hintText: 'Nhập mã demo 123456',
                             icon: Icons.verified_user_outlined,
                           ).copyWith(counterText: ''),
                         ),
@@ -348,7 +348,7 @@ class SignupView extends GetView<AuthController> {
         const SizedBox(height: 12),
 
         const Text(
-          'HỒNG TRÀ LÊ GIA',
+          'MAXKO F&B GROUP',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,

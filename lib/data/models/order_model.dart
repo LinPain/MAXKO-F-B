@@ -4,6 +4,7 @@ import 'delivery_tracking_model.dart';
 
 class OrderModel {
   final String id;
+  final String orderNumber;
   final String branchName;
   final List<CartItemModel> items;
   final double subtotal;
@@ -16,6 +17,7 @@ class OrderModel {
 
   const OrderModel({
     required this.id,
+    this.orderNumber = '',
     required this.branchName,
     required this.items,
     required this.subtotal,
@@ -30,6 +32,7 @@ class OrderModel {
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      orderNumber: json['orderNumber']?.toString() ?? '',
       branchName: json['branchName'] ?? json['branchId'] ?? '',
       items:
           (json['items'] as List?)

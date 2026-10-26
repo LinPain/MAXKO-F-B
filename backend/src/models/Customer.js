@@ -3,6 +3,13 @@ const mongoose = require('mongoose');
 const customerSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   phone: { type: String, required: true, unique: true, trim: true },
+  birthday: { type: Date, default: null },
+  gender: { type: String, enum: ['female', 'male', 'other', 'unspecified'], default: 'unspecified' },
+  notificationPreferences: {
+    push: { type: Boolean, default: true },
+    email: { type: Boolean, default: true },
+    sms: { type: Boolean, default: false },
+  },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   passwordHash: { type: String, required: true },
   role: { type: String, default: 'CUSTOMER', enum: ['CUSTOMER'] },

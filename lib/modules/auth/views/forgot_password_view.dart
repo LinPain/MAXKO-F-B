@@ -45,8 +45,8 @@ class ForgotPasswordView extends GetView<AuthController> {
                   const SizedBox(height: 8),
                   Obx(() => Text(
                         controller.resetCodeSent.value
-                            ? 'Nhập mã 6 chữ số đã gửi đến email của bạn và tạo mật khẩu mới.'
-                            : 'Nhập email đăng ký. Chúng tôi sẽ gửi mã xác thực để bạn đặt lại mật khẩu.',
+                            ? 'Nhập mã demo 123456 và tạo mật khẩu mới để xem trước quy trình.'
+                            : 'Nhập email đăng ký để tạo mã xác thực demo. Không gửi email trong chế độ xem trước.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 14,
@@ -241,7 +241,7 @@ class ForgotPasswordView extends GetView<AuthController> {
           ),
           const SizedBox(height: 13),
           const Text(
-            'HỒNG TRÀ LÊ GIA',
+            'MAXKO F&B GROUP',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

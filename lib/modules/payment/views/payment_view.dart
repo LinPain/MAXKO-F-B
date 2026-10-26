@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../widgets/app_header.dart';
+import '../../../widgets/app_bottom_navigation.dart';
 
 import '../../main/controllers/main_controller.dart';
 import '../controllers/payment_controller.dart';
@@ -29,10 +30,7 @@ class PaymentView extends GetView<PaymentController> {
             Get.find<MainController>().openHistory();
           },
           onProfileTap: () {
-            Get.snackbar(
-              'Tài khoản',
-              'Chức năng tài khoản sẽ được xây dựng sau.',
-            );
+            Get.toNamed(AppRoutes.account);
           },
         ),
       ),
@@ -172,7 +170,7 @@ class PaymentView extends GetView<PaymentController> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: !enabled
                   ? AppColors.textSecondary.withValues(alpha: 0.35)
@@ -193,7 +191,7 @@ class PaymentView extends GetView<PaymentController> {
                       : isSelected
                       ? AppColors.primary.withValues(alpha: 0.08)
                       : AppColors.background,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
@@ -259,7 +257,7 @@ class PaymentView extends GetView<PaymentController> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
@@ -309,7 +307,7 @@ class PaymentView extends GetView<PaymentController> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
@@ -341,7 +339,12 @@ class PaymentView extends GetView<PaymentController> {
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          border: Border(
+            top: BorderSide(color: AppColors.border.withValues(alpha: .75)),
+          ),
+        ),
         child: SizedBox(
           width: double.infinity,
           height: 52,
@@ -377,13 +380,10 @@ class PaymentView extends GetView<PaymentController> {
   // =========================================================
 
   Widget _buildBottomNavigation() {
-    return NavigationBar(
+    return AppBottomNavigation(
       selectedIndex: 2,
-      onDestinationSelected: (index) {
-        if (index == 2) {
-          return;
-        }
-
+      orderBadgeCount: controller.cartController.totalItems,
+      onSelected: (index) {
         final mainController = Get.find<MainController>();
 
         Get.offNamed(AppRoutes.main);
@@ -392,33 +392,6 @@ class PaymentView extends GetView<PaymentController> {
           mainController.changeTab(index);
         });
       },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home),
-          label: 'Trang chủ',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.local_cafe_outlined),
-          selectedIcon: Icon(Icons.local_cafe),
-          label: 'Đặt món',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.shopping_cart_outlined),
-          selectedIcon: Icon(Icons.shopping_cart),
-          label: 'Giỏ hàng',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.card_membership_outlined),
-          selectedIcon: Icon(Icons.card_membership),
-          label: 'Hội viên',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.receipt_long_outlined),
-          selectedIcon: Icon(Icons.receipt_long),
-          label: 'Đơn hàng',
-        ),
-      ],
     );
   }
 }

@@ -3,13 +3,11 @@ import 'package:get/get.dart';
 
 import '../../../app/routes/app_routes.dart';
 import '../../account/controllers/account_controller.dart';
-import '../../../data/providers/api_client.dart';
 import '../../orders/controllers/orders_controller.dart';
 
 class AuthController extends GetxController {
-  AuthController({required this.apiProvider});
+  static const demoVerificationCode = '123456';
 
-  final ApiClient apiProvider;
   final isSubmitting = false.obs;
   final loginEmailController = TextEditingController();
   final loginPasswordController = TextEditingController();
@@ -58,11 +56,10 @@ class AuthController extends GetxController {
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      await apiProvider.requestPasswordReset(email: email);
       resetCodeSent.value = true;
       Get.snackbar(
-        'Kiểm tra email',
-        'Nếu email đã đăng ký, mã xác thực sẽ được gửi đến hộp thư của bạn.',
+        'Mã demo đã sẵn sàng',
+        'Nhập mã $demoVerificationCode để xem tiếp quy trình đặt lại mật khẩu.',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (error) {
@@ -104,17 +101,23 @@ class AuthController extends GetxController {
       );
       return;
     }
+    if (!GetUtils.isEmail(email)) {
+      Get.snackbar(
+        'Email chưa hợp lệ',
+        'Vui lòng nhập email hợp lệ trước khi xác nhận mã demo.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      await apiProvider.resetPassword(
-        email: email,
-        code: code,
-        password: password,
-      );
+      if (!resetCodeSent.value || code != demoVerificationCode) {
+        throw Exception('Mã demo không đúng. Hãy dùng $demoVerificationCode.');
+      }
       Get.snackbar(
-        'Đổi mật khẩu thành công',
-        'Bạn có thể đăng nhập bằng mật khẩu mới.',
+        'Đổi mật khẩu demo thành công',
+        'Quy trình đã hoàn tất. Thông tin chỉ dùng trong phiên xem trước.',
         snackPosition: SnackPosition.BOTTOM,
       );
       Get.offNamed(AppRoutes.login);
@@ -157,12 +160,16 @@ class AuthController extends GetxController {
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      final response = await apiProvider.login(
-        email: email,
-        password: password,
-      );
-      final user = response['user'];
-      if (user is Map) _setSignedInUser(user);
+      if (!GetUtils.isEmail(email)) {
+        throw Exception('Vui lòng nhập email hợp lệ.');
+      }
+      _setSignedInUser({
+        'name': _nameFromEmail(email),
+        'email': email,
+        'phone': '0900000000',
+        'membershipTier': 'GOLD',
+        'loyaltyPoints': 1250,
+      });
       Get.offAllNamed(AppRoutes.main);
     } catch (error) {
       Get.snackbar(
@@ -240,26 +247,18 @@ class AuthController extends GetxController {
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      final response = await apiProvider.register(
-        name: name,
-        phone: phone,
-        email: email,
-        password: password,
-        code: code,
-      );
-      final user = response['user'];
-      if (user is Map) {
-        _setSignedInUser(user);
-        signupCodeSent.value = false;
-        Get.offAllNamed(AppRoutes.main);
-      } else {
-        Get.snackbar(
-          'Đăng ký thành công',
-          'Vui lòng đăng nhập để tiếp tục.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
-        Get.offAllNamed(AppRoutes.login);
+      if (code != demoVerificationCode) {
+        throw Exception('Mã demo không đúng. Hãy dùng $demoVerificationCode.');
       }
+      _setSignedInUser({
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'membershipTier': 'BRONZE',
+        'loyaltyPoints': 120,
+      });
+      signupCodeSent.value = false;
+      Get.offAllNamed(AppRoutes.main);
     } catch (error) {
       Get.snackbar(
         'Đăng ký thất bại',
@@ -286,15 +285,10 @@ class AuthController extends GetxController {
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      await apiProvider.requestSignupCode(
-        name: name,
-        phone: phone,
-        email: email,
-      );
       signupCodeSent.value = true;
       Get.snackbar(
-        'Kiểm tra email',
-        'Nếu email chưa được sử dụng, mã xác thực sẽ được gửi đến hộp thư.',
+        'Mã demo đã sẵn sàng',
+        'Nhập mã $demoVerificationCode để hoàn tất đăng ký xem trước.',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (error) {
@@ -311,7 +305,7 @@ class AuthController extends GetxController {
   void _setSignedInUser(Map user) {
     if (!Get.isRegistered<AccountController>()) {
       Get.put<AccountController>(
-        AccountController(apiProvider: apiProvider),
+        AccountController(),
         permanent: true,
       );
     }
@@ -319,13 +313,26 @@ class AuthController extends GetxController {
       username: user['name']?.toString() ?? '',
       email: user['email']?.toString() ?? '',
       phone: user['phone']?.toString() ?? '',
-      id: user['id']?.toString() ?? '',
+      id: '',
       tier: user['membershipTier']?.toString() ?? 'BRONZE',
       points: (user['loyaltyPoints'] as num?)?.toInt() ?? 0,
+      birthday: user['birthday']?.toString(),
+      gender: user['gender']?.toString() ?? 'unspecified',
     );
     if (Get.isRegistered<OrdersController>()) {
       Get.find<OrdersController>().loadMyOrders();
     }
+  }
+
+  String _nameFromEmail(String email) {
+    final localPart = email.split('@').first.replaceAll(RegExp(r'[._-]+'), ' ');
+    if (localPart.isEmpty) return 'Khách MAXKO';
+    return localPart
+        .split(' ')
+        .map((word) => word.isEmpty
+            ? word
+            : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 
   @override

@@ -1,6 +1,6 @@
 import '../models/product_model.dart';
-import '../providers/api_client.dart';
 
+/// Local catalog used by the app while the backend is disconnected.
 abstract interface class ProductCatalog {
   Future<List<ProductModel>> getProducts();
   Future<List<String>> getCategories();
@@ -8,42 +8,59 @@ abstract interface class ProductCatalog {
 }
 
 class ProductRepository implements ProductCatalog {
-  final ApiClient apiProvider;
+  const ProductRepository();
 
-  const ProductRepository({required this.apiProvider});
+  static const _products = <ProductModel>[
+    ProductModel(
+      id: 'demo-peach-tea',
+      name: 'Trà Đào Cam Sả',
+      description: 'Trà đào thanh mát kết hợp cam và sả.',
+      price: 39000,
+      imageUrl: '',
+      categoryId: 'Trà trái cây',
+      isAvailable: true,
+    ),
+    ProductModel(
+      id: 'demo-matcha-milk-tea',
+      name: 'Trà Sữa Matcha',
+      description: 'Trà sữa matcha thơm đậm vị.',
+      price: 42000,
+      imageUrl: '',
+      categoryId: 'Trà sữa',
+      isAvailable: true,
+    ),
+    ProductModel(
+      id: 'demo-cheese-tea',
+      name: 'Hồng Trà Kem Cheese',
+      description: 'Hồng trà kết hợp lớp kem cheese béo mịn.',
+      price: 45000,
+      imageUrl: '',
+      categoryId: 'Trà',
+      isAvailable: true,
+    ),
+  ];
 
   @override
-  Future<List<ProductModel>> getProducts() async {
-    final data = await apiProvider.get('/api/products');
-    if (data is! List) throw Exception('Danh sách sản phẩm không hợp lệ.');
-
-    return data
-        .whereType<Map>()
-        .map((json) => ProductModel.fromJson(Map<String, dynamic>.from(json)))
-        .toList();
-  }
+  Future<List<ProductModel>> getProducts() async => _products;
 
   @override
-  Future<List<String>> getCategories() async {
-    final data = await apiProvider.get('/api/products/categories');
-    if (data is! List) throw Exception('Danh mục sản phẩm không hợp lệ.');
-
-    return data
-        .whereType<Map>()
-        .map((item) => item['name']?.toString() ?? '')
-        .where((name) => name.isNotEmpty)
-        .toSet()
-        .toList();
-  }
+  Future<List<String>> getCategories() async => const [
+    'Trà',
+    'Trà sữa',
+    'Trà trái cây',
+  ];
 
   @override
-  Future<List<Map<String, dynamic>>> getCampaigns() async {
-    final data = await apiProvider.get('/api/customers/campaigns');
-    if (data is! List) throw Exception('Danh sách khuyến mãi không hợp lệ.');
-
-    return data
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
-  }
+  Future<List<Map<String, dynamic>>> getCampaigns() async => const [
+    {
+      'code': 'MAXKO20',
+      'title': 'Giảm 20%',
+      'description': 'Áp dụng cho đơn từ 80.000đ',
+    },
+    {
+      'code': 'FREESHIP',
+      'title': 'Miễn phí giao hàng',
+      'description': 'Áp dụng cho đơn giao hàng',
+    },
+  ];
 }

@@ -43,11 +43,29 @@ class LoginView extends GetView<AuthController> {
                   const SizedBox(height: 8),
 
                   const Text(
-                    'Đăng nhập để tiếp tục với Hồng Trà Lê Gia',
+                    'Đăng nhập để tiếp tục với MAXKO F&B',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
                       color: AppColors.textSecondary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF2E8),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'CHẾ ĐỘ DEMO · Dùng email hợp lệ và mật khẩu bất kỳ. Dữ liệu chỉ lưu trong phiên hiện tại.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.primaryDark,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
 
@@ -281,7 +299,7 @@ class LoginView extends GetView<AuthController> {
         const SizedBox(height: 14),
 
         const Text(
-          'HỒNG TRÀ LÊ GIA',
+          'MAXKO F&B GROUP',
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,

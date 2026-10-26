@@ -34,7 +34,7 @@ class CartView extends GetView<CartController> {
             Icon(
               Icons.shopping_cart_outlined,
               size: 72,
-              color: Colors.grey.shade400,
+              color: AppColors.primary.withValues(alpha: .28),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -50,14 +50,14 @@ class CartView extends GetView<CartController> {
               'Hãy chọn món yêu thích và thêm vào giỏ hàng.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
                 final mainController = Get.find<MainController>();
-                mainController.changeTab(1);
+                mainController.changeTab(2);
               },
               icon: const Icon(Icons.local_cafe_outlined),
               label: const Text('Đặt món'),
