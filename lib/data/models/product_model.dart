@@ -8,6 +8,8 @@ class ProductModel {
   final String imageUrl;
   final String categoryId;
   final bool isAvailable;
+  final String brandId;
+  final String branchId;
 
   final List<ProductOptionModel> sizes;
   final List<ProductOptionModel> sugarLevels;
@@ -22,6 +24,8 @@ class ProductModel {
     required this.imageUrl,
     required this.categoryId,
     required this.isAvailable,
+    this.brandId = 'brand-legia',
+    this.branchId = 'b-cau-giay',
     this.sizes = const [],
     this.sugarLevels = const [],
     this.iceLevels = const [],
@@ -30,16 +34,26 @@ class ProductModel {
 
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
+    final category = json['category'];
+    final availability = json['branchAvailability'];
     return ProductModel(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      imageUrl: json['imageUrl']?.toString() ?? '',
-      categoryId: json['category']?.toString()
-          ?? json['categoryId']?.toString()
-          ?? '',
-      isAvailable: json['isAvailable'] as bool? ?? false,
+      price: (json['price'] as num?)?.toDouble() ??
+          (json['basePrice'] as num?)?.toDouble() ?? 0.0,
+      imageUrl: json['imageUrl']?.toString() ??
+          json['primaryImageUrl']?.toString() ??
+          '',
+      categoryId: category is Map
+          ? (category['name']?.toString() ?? category['id']?.toString() ?? '')
+          : category?.toString() ?? json['categoryId']?.toString() ?? '',
+      isAvailable: json['isAvailable'] as bool? ??
+          (availability is Map
+              ? availability['isAvailable'] as bool? ?? false
+              : false),
+      brandId: json['brandId']?.toString() ?? 'brand-legia',
+      branchId: json['branchId']?.toString() ?? 'b-cau-giay',
       sizes: _parseOptions(json['sizes']),
       sugarLevels: _parseOptions(json['sugarLevels']),
       iceLevels: _parseOptions(json['iceLevels']),

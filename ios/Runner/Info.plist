@@ -36,7 +36,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Cho phép vị trí để chuẩn bị tính năng theo dõi đơn giao hàng khi mở ứng dụng.</string>
+	<string>Cho phép MAXKO sử dụng vị trí khi bạn chọn giao hàng để tìm cơ sở gần nhất và kiểm tra khu vực phục vụ.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
@@ -81,3 +81,4 @@
 	</array>
 </dict>
 </plist>
+

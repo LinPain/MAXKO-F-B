@@ -8,6 +8,8 @@ class AppHeader extends StatelessWidget {
     this.onMenuTap,
     this.onSearchTap,
     this.onNotificationTap,
+    this.showNotificationAction = false,
+    this.cartBadgeCount = 0,
     this.onHistoryTap,
     this.onCartTap,
     this.onProfileTap,
@@ -16,6 +18,8 @@ class AppHeader extends StatelessWidget {
   final VoidCallback? onMenuTap;
   final VoidCallback? onSearchTap;
   final VoidCallback? onNotificationTap;
+  final bool showNotificationAction;
+  final int cartBadgeCount;
   final VoidCallback? onHistoryTap;
   final VoidCallback? onCartTap;
   final VoidCallback? onProfileTap;
@@ -35,39 +39,32 @@ class AppHeader extends StatelessWidget {
               tooltip: 'Mở danh mục',
             ),
             const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'MAXKO',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.3,
-                    ),
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppColors.primaryDark,
+                    child: Icon(Icons.local_fire_department_rounded,
+                        color: Colors.white, size: 17),
                   ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                  SizedBox(width: 5),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.local_cafe_rounded,
+                      Text('MAXKO', style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
+                      )),
+                      Text('F&B GROUP', style: TextStyle(
                         color: AppColors.primary,
-                        size: 11,
-                      ),
-                      SizedBox(width: 3),
-                      Text(
-                        'F&B GROUP',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1,
-                        ),
-                      ),
+                        fontSize: 8,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      )),
                     ],
                   ),
                 ],
@@ -78,12 +75,20 @@ class AppHeader extends StatelessWidget {
               onPressed: onSearchTap,
               tooltip: 'Tìm kiếm',
             ),
+            if (showNotificationAction)
+              _HeaderAction(
+                icon: Icons.notifications_none_rounded,
+                onPressed: onNotificationTap,
+                tooltip: 'Thông báo',
+                showDot: true,
+              ),
             _HeaderAction(
               icon: onCartTap == null
                   ? Icons.receipt_long_outlined
                   : Icons.shopping_bag_outlined,
               onPressed: onCartTap ?? onHistoryTap,
               tooltip: onCartTap == null ? 'Lịch sử đơn hàng' : 'Giỏ hàng',
+              showDot: cartBadgeCount > 0,
             ),
             _HeaderAction(
               icon: Icons.person_outline_rounded,
@@ -104,12 +109,14 @@ class _HeaderAction extends StatelessWidget {
     required this.onPressed,
     required this.tooltip,
     this.accent = false,
+    this.showDot = false,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
   final String tooltip;
   final bool accent;
+  final bool showDot;
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +129,26 @@ class _HeaderAction extends StatelessWidget {
         backgroundColor: accent ? AppColors.primary : Colors.transparent,
         foregroundColor: accent ? Colors.white : AppColors.textPrimary,
       ),
-      icon: Icon(icon, size: 21),
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(icon, size: 21),
+          if (showDot)
+            Positioned(
+              top: 0,
+              right: -1,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE53935),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.background, width: 1),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

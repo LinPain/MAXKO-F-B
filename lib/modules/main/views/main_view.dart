@@ -7,6 +7,7 @@ import '../../../widgets/app_bottom_navigation.dart';
 import '../../cart/views/cart_view.dart';
 import '../../cart/controllers/cart_controller.dart';
 import '../../home/views/brands_view.dart';
+import '../../home/views/home_view.dart';
 import '../../membership/views/membership_view.dart';
 import '../../menu/views/menu_view.dart';
 import '../../notifications/views/notifications_view.dart';
@@ -22,8 +23,8 @@ class MainView extends GetView<MainController> {
   @override
   Widget build(BuildContext context) {
     final pages = [
+      const HomeView(),
       const BrandsView(homeMode: true),
-      const BrandsView(),
       const MenuView(),
       OrdersView(showScrollableHeader: true, scaffoldKey: scaffoldKey),
       const MembershipView(),
@@ -63,8 +64,10 @@ class MainView extends GetView<MainController> {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 480),
                     child: AppHeader(
+                      showNotificationAction: selectedIndex == 0,
+                      cartBadgeCount: Get.find<CartController>().totalItems,
                       onMenuTap: () => scaffoldKey.currentState?.openDrawer(),
-                      onSearchTap: () => controller.changeTab(1),
+                      onSearchTap: () => controller.changeTab(2),
                       onNotificationTap: controller.openNotifications,
                       onCartTap: controller.openCart,
                       onProfileTap: () => Get.toNamed('/account'),
@@ -83,16 +86,123 @@ class MainView extends GetView<MainController> {
           heightFactor: 1,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: AppBottomNavigation(
-              selectedIndex: selectedIndex,
-              onSelected: controller.changeTab,
-              orderBadgeCount: Get.find<CartController>().totalItems,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (selectedIndex == 1 &&
+                    !controller.isCartPage.value &&
+                    !controller.isHistoryPage.value &&
+                    !controller.isNotificationPage.value)
+                  Obx(() {
+                    final cart = Get.find<CartController>();
+                    if (cart.totalItems == 0) return const SizedBox.shrink();
+                    return _CartSummaryRibbon(
+                      count: cart.totalItems,
+                      total: cart.total,
+                      onTap: controller.openCart,
+                    );
+                  }),
+                AppBottomNavigation(
+                  selectedIndex: selectedIndex,
+                  onSelected: controller.changeTab,
+                  orderBadgeCount: Get.find<CartController>().totalItems,
+                ),
+              ],
             ),
           ),
         ),
       );
     });
   }
+}
+
+class _CartSummaryRibbon extends StatelessWidget {
+  const _CartSummaryRibbon({
+    required this.count,
+    required this.total,
+    required this.onTap,
+  });
+
+  final int count;
+  final double total;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 7),
+    child: Material(
+      color: const Color(0xFF292B29),
+      borderRadius: BorderRadius.circular(17),
+      elevation: 5,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Row(
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(Icons.shopping_bag_outlined,
+                        color: Colors.white, size: 21),
+                  ),
+                  Positioned(
+                    right: -4,
+                    top: -5,
+                    child: CircleAvatar(
+                      radius: 9,
+                      backgroundColor: Colors.white,
+                      child: Text('$count', style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                      )),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('$count món  ·  ${_formatPrice(total)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                        )),
+                    const Text('Đã áp dụng ưu đãi của bạn',
+                        style: TextStyle(color: Colors.white70, fontSize: 10)),
+                  ],
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: onTap,
+                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                label: const Text('Xem giỏ'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  String _formatPrice(double value) =>
+      '${value.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')}đ';
 }
 
 class _MainNavigationDrawer extends StatelessWidget {

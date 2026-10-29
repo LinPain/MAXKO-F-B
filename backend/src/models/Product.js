@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const productOptionSchema = new mongoose.Schema(
   {
+    id: { type: String, unique: true, sparse: true, trim: true },
     name: {
       type: String,
       required: true,
@@ -12,6 +13,7 @@ const productOptionSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    isDefault: { type: Boolean, default: false },
   },
   { _id: false },
 );
@@ -44,6 +46,17 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+
+    brandId: { type: String, default: 'brand-legia', index: true },
+    categoryId: { type: String, default: '' },
+    basePrice: { type: Number, min: 0 },
+    branchPriceOverrides: { type: Map, of: Number, default: {} },
+    modifierGroupIds: { type: [String], default: [] },
+    branchAvailability: {
+      type: Map,
+      of: Boolean,
+      default: {},
     },
 
     isAvailable: {

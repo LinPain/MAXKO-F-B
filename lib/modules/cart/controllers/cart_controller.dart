@@ -55,6 +55,8 @@ class CartController extends GetxController {
       productName: currentItem.productName,
       unitPrice: currentItem.unitPrice,
       imageUrl: currentItem.imageUrl,
+      brandId: currentItem.brandId,
+      branchId: currentItem.branchId,
       quantity: quantity,
       customization: currentItem.customization,
     );

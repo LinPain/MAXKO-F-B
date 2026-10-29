@@ -83,51 +83,6 @@ class SignupView extends GetView<AuthController> {
                         ),
                       )),
 
-                  Obx(() {
-                    if (!controller.signupCodeSent.value) {
-                      return const SizedBox.shrink();
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 16),
-                        _buildLabel('Mã xác thực demo'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: controller.signupCodeController,
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => controller.signup(),
-                          autofillHints: const [AutofillHints.oneTimeCode],
-                          maxLength: 6,
-                          decoration: _inputDecoration(
-                            hintText: 'Nhập mã demo 123456',
-                            icon: Icons.verified_user_outlined,
-                          ).copyWith(counterText: ''),
-                        ),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Wrap(
-                            spacing: 8,
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  controller.signupCodeSent.value = false;
-                                  controller.signupCodeController.clear();
-                                },
-                                child: const Text('Đổi email'),
-                              ),
-                              TextButton(
-                                onPressed: controller.requestSignupCode,
-                                child: const Text('Gửi lại mã'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-
                   const SizedBox(height: 16),
 
                   _buildLabel('Số điện thoại'),
@@ -144,66 +99,65 @@ class SignupView extends GetView<AuthController> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
-
-                  _buildLabel('Mật khẩu'),
-
-                  const SizedBox(height: 8),
-
-                  Obx(
-                        () => TextField(
-                      controller: controller.signupPasswordController,
-                      obscureText:
-                      !controller.signupPasswordVisible.value,
-                      textInputAction: TextInputAction.next,
-                      decoration: _inputDecoration(
-                        hintText: 'Tạo mật khẩu',
-                        icon: Icons.lock_outline,
-                        suffixIcon: IconButton(
-                          onPressed:
-                          controller.toggleSignupPassword,
-                          icon: Icon(
-                            controller.signupPasswordVisible.value
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            color: AppColors.textSecondary,
+                  Obx(() => controller.signupCodeSent.value
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 16),
+                            _buildLabel('Mã xác nhận email'),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: controller.signupCodeController,
+                              keyboardType: TextInputType.number,
+                              textInputAction: TextInputAction.next,
+                              decoration: _inputDecoration(
+                                hintText: 'Nhập mã 6 chữ số',
+                                icon: Icons.verified_user_outlined,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildLabel('Mật khẩu'),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: controller.signupPasswordController,
+                              obscureText: !controller.signupPasswordVisible.value,
+                              decoration: _inputDecoration(
+                                hintText: 'Ít nhất 8 ký tự',
+                                icon: Icons.lock_outline,
+                                suffixIcon: IconButton(
+                                  onPressed: controller.toggleSignupPassword,
+                                  icon: Icon(controller.signupPasswordVisible.value
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildLabel('Xác nhận mật khẩu'),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: controller.signupConfirmPasswordController,
+                              obscureText: !controller.signupConfirmPasswordVisible.value,
+                              decoration: _inputDecoration(
+                                hintText: 'Nhập lại mật khẩu',
+                                icon: Icons.lock_outline,
+                                suffixIcon: IconButton(
+                                  onPressed: controller.toggleSignupConfirmPassword,
+                                  icon: Icon(controller.signupConfirmPasswordVisible.value
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : const Padding(
+                          padding: EdgeInsets.only(top: 12),
+                          child: Text(
+                            'Chúng tôi sẽ gửi mã xác nhận đến email của bạn. Tài khoản cần mật khẩu để đăng nhập.',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
                           ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  _buildLabel('Xác nhận mật khẩu'),
-
-                  const SizedBox(height: 8),
-
-                  Obx(
-                        () => TextField(
-                      controller:
-                      controller.signupConfirmPasswordController,
-                      obscureText:
-                      !controller.signupConfirmPasswordVisible.value,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => controller.signup(),
-                      decoration: _inputDecoration(
-                        hintText: 'Nhập lại mật khẩu',
-                        icon: Icons.lock_outline,
-                        suffixIcon: IconButton(
-                          onPressed:
-                          controller.toggleSignupConfirmPassword,
-                          icon: Icon(
-                            controller.signupConfirmPasswordVisible.value
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
+                        )),
                   const SizedBox(height: 16),
 
                   Obx(
@@ -263,10 +217,8 @@ class SignupView extends GetView<AuthController> {
                                   ),
                                 )
                               : Text(
-                                  controller.signupCodeSent.value
-                                      ? 'Tạo tài khoản'
-                                      : 'Gửi mã xác thực',
-                                  style: const TextStyle(
+                                  controller.signupCodeSent.value ? 'Tạo tài khoản' : 'Gửi mã xác nhận',
+                                  style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -426,3 +378,4 @@ class SignupView extends GetView<AuthController> {
     );
   }
 }
+

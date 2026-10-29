@@ -231,7 +231,72 @@ class CheckoutView extends GetView<CheckoutController> {
             const SizedBox(height: 8),
             TextField(
               controller: controller.deliveryAddressController,
+              onChanged: (_) => controller.onDeliveryAddressChanged(),
               decoration: const InputDecoration(labelText: 'Địa chỉ giao hàng'),
+            ),
+            const SizedBox(height: 8),
+            Obx(
+              () => Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.my_location_rounded,
+                          color: AppColors.primary,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 7),
+                        Expanded(
+                          child: Text(
+                            controller.deliveryLocationStatus.value.isEmpty
+                                ? 'Cho phép vị trí để tìm cơ sở gần nhất và kiểm tra vùng giao hàng. Hãy đảm bảo vị trí gần địa chỉ bạn nhập.'
+                                : controller.deliveryLocationStatus.value,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: controller.isLocatingDelivery.value
+                            ? null
+                            : controller.requestDeliveryLocation,
+                        icon: controller.isLocatingDelivery.value
+                            ? const SizedBox(
+                                width: 15,
+                                height: 15,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.location_searching_rounded,
+                                size: 17,
+                              ),
+                        label: Text(
+                          controller.isLocatingDelivery.value
+                              ? 'Đang xác định...'
+                              : 'Xác định vị trí',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
             Obx(
               () => Wrap(
@@ -240,9 +305,11 @@ class CheckoutView extends GetView<CheckoutController> {
                   ...controller.savedAddresses.map(
                     (item) => InputChip(
                       label: Text(item['label']?.toString() ?? 'Đã lưu'),
-                      onPressed: () =>
-                          controller.deliveryAddressController.text =
-                              item['address']?.toString() ?? '',
+                      onPressed: () {
+                        controller.deliveryAddressController.text =
+                            item['address']?.toString() ?? '';
+                        controller.onDeliveryAddressChanged();
+                      },
                       onDeleted: () => controller.removeSavedAddress(item),
                     ),
                   ),

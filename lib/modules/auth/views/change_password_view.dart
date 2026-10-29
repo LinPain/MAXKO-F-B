@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../app/theme/app_colors.dart';
+import '../../../data/providers/api_client.dart';
 
 class ChangePasswordView extends StatefulWidget {
   const ChangePasswordView({super.key});
@@ -32,14 +33,21 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
     if (_isSubmitting || !(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _isSubmitting = true);
     try {
-      await Future<void>.delayed(const Duration(milliseconds: 250));
+      final apiProvider = Get.find<ApiClient>();
+      await apiProvider.post(
+        '/api/auth/change-password',
+        body: {
+          'currentPassword': _currentPassword.text,
+          'newPassword': _newPassword.text,
+        },
+      );
       _currentPassword.clear();
       _newPassword.clear();
       _confirmPassword.clear();
       if (!mounted) return;
       Get.snackbar(
-        'Đổi mật khẩu demo thành công',
-        'Thay đổi chỉ dùng trong phiên xem trước này.',
+        'Đổi mật khẩu thành công',
+        'Mật khẩu tài khoản của bạn đã được cập nhật.',
         snackPosition: SnackPosition.BOTTOM,
       );
       Get.back();
@@ -106,7 +114,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
                       ),
                       SizedBox(height: 5),
                       Text(
-                        'Nhập thông tin để xem trước quy trình đổi mật khẩu. Thay đổi chỉ lưu trong phiên demo.',
+                        'Nhập mật khẩu hiện tại và mật khẩu mới để bảo mật tài khoản.',
                         style: TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,

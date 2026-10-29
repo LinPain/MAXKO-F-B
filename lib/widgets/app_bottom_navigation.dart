@@ -33,7 +33,7 @@ class AppBottomNavigation extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 62,
+          height: 68,
           child: Row(
             children: [
               for (var index = 0; index < _items.length; index++)
@@ -44,20 +44,31 @@ class AppBottomNavigation extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 28,
-                          height: 24,
+                          width: 32,
+                          height: 28,
                           child: Stack(
                             clipBehavior: Clip.none,
                             alignment: Alignment.center,
                             children: [
-                              Icon(
-                                selectedIndex == index
-                                    ? _items[index].$2
-                                    : _items[index].$1,
-                                size: 20,
-                                color: selectedIndex == index
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                width: 30,
+                                height: 27,
+                                decoration: BoxDecoration(
+                                  color: selectedIndex == index
+                                      ? AppColors.primary.withValues(alpha: .10)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  selectedIndex == index
+                                      ? _items[index].$2
+                                      : _items[index].$1,
+                                  size: 19,
+                                  color: selectedIndex == index
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
+                                ),
                               ),
                               if (index == 3 && orderBadgeCount > 0)
                                 Positioned(

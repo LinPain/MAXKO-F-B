@@ -68,13 +68,6 @@ class _AccountViewState extends State<AccountView> {
                     _memberCard(signedIn),
                     const SizedBox(height: 14),
                     if (!signedIn) ...[
-                      _tabs(),
-                      const SizedBox(height: 12),
-                      if (_selectedTab == 0)
-                        _mockProfilePreview()
-                      else
-                        _mockSecurityPreview(),
-                      const SizedBox(height: 12),
                       _signInPrompt(),
                     ] else ...[
                       _tabs(),
@@ -139,345 +132,27 @@ class _AccountViewState extends State<AccountView> {
     ],
   );
 
-  Widget _mockProfilePreview() => _panel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Thông tin tài khoản',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                  ),
-                  SizedBox(height: 3),
-                  Text(
-                    'Cập nhật hồ sơ để nhận ưu đãi hội viên.',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _previewBadge(),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: [
-              const CircleAvatar(
-                radius: 28,
-                backgroundColor: Color(0xFFFFE3D9),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: AppColors.primary,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Ảnh đại diện',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Tối đa 5 MB · JPG, PNG',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              TextButton(
-                onPressed: _requireLogin,
-                child: const Text('Chọn ảnh', style: TextStyle(fontSize: 10)),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 14),
-        _mockField(
-          'Họ và tên',
-          'Nguyễn Hoàng Nam',
-          Icons.person_outline_rounded,
-        ),
-        _mockField(
-          'Tên hiển thị / Biệt danh',
-          'Nam Nguyen',
-          Icons.alternate_email_rounded,
-        ),
-        _mockField(
-          'Số điện thoại tích điểm',
-          '+84 0912 345 678',
-          Icons.phone_android_rounded,
-          badge: 'Đã xác thực OTP',
-        ),
-        _mockField(
-          'Email nhận hóa đơn điện tử',
-          'hoangnam@example.com',
-          Icons.mail_outline_rounded,
-        ),
-        _mockField(
-          'Ngày sinh',
-          '15/10/1995',
-          Icons.calendar_month_outlined,
-          badge: 'Tặng voucher sinh nhật',
-        ),
-        _mockField(
-          'Tỉnh / Thành phố sinh sống',
-          'TP. Hồ Chí Minh',
-          Icons.location_city_outlined,
-        ),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 6),
-          child: Text(
-            'Giới tính',
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-          ),
-        ),
-        Wrap(
-          spacing: 7,
-          children: [
-            _mockGender('Nam', selected: true),
-            _mockGender('Nữ'),
-            _mockGender('Khác'),
-          ],
-        ),
-        const SizedBox(height: 15),
-        SizedBox(
-          height: 46,
-          child: ElevatedButton.icon(
-            onPressed: _requireLogin,
-            icon: const Icon(Icons.save_outlined),
-            label: const Text('Lưu thay đổi hồ sơ'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: const StadiumBorder(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        TextButton(
-          onPressed: _requireLogin,
-          child: const Text(
-            'Hủy bỏ',
-            style: TextStyle(color: AppColors.textSecondary),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _previewBadge() => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFE3D9),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: const Text(
-      'BẢN XEM TRƯỚC',
-      style: TextStyle(
-        color: AppColors.primary,
-        fontSize: 8,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-
-  Widget _mockField(
-    String label,
-    String value,
-    IconData icon, {
-    String? badge,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 11),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            if (badge != null)
-              Text(
-                badge,
-                style: const TextStyle(
-                  color: AppColors.matcha,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: AppColors.textSecondary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _mockGender(String label, {bool selected = false}) => ChoiceChip(
-    selected: selected,
-    onSelected: (_) => _requireLogin(),
-    avatar: Icon(
-      selected ? Icons.radio_button_checked : Icons.radio_button_off,
-      size: 14,
-      color: selected ? AppColors.primary : AppColors.textSecondary,
-    ),
-    label: Text(label),
-    labelStyle: const TextStyle(fontSize: 10),
-    selectedColor: const Color(0xFFFFE3D9),
-    backgroundColor: AppColors.surfaceMuted,
-    side: BorderSide.none,
-  );
-
-  Widget _mockSecurityPreview() => _panel(
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Tiện ích & Bảo mật',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-              ),
-            ),
-            _previewBadge(),
-          ],
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'Các tiện ích hội viên trong bản xem trước.',
-          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 8),
-        _settingRow(
-          Icons.lock_outline_rounded,
-          'Mật khẩu tài khoản',
-          'Đổi mật khẩu để bảo vệ tài khoản',
-          onTap: _requireLogin,
-          trailing: 'Đổi',
-        ),
-        _settingRow(
-          Icons.location_on_outlined,
-          'Địa chỉ giao hàng',
-          '3 địa chỉ đã lưu (Nhà riêng, Văn phòng)',
-          onTap: _requireLogin,
-          trailing: 'Quản lý',
-        ),
-        _settingRow(
-          Icons.notifications_none_rounded,
-          'Cài đặt thông báo',
-          'Trạng thái đơn hàng, ưu đãi sinh nhật',
-          onTap: _requireLogin,
-        ),
-        const Divider(height: 20),
-        const Text(
-          'Kênh nhận thông báo',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-        ),
-        const SizedBox(height: 7),
-        const _PreviewAccountRow(
-          icon: Icons.notifications_active_outlined,
-          label: 'Thông báo ứng dụng',
-          value: 'Đang bật',
-        ),
-        const _PreviewAccountRow(
-          icon: Icons.mail_outline_rounded,
-          label: 'Email',
-          value: 'Đang bật',
-        ),
-        const _PreviewAccountRow(
-          icon: Icons.sms_outlined,
-          label: 'SMS OTP',
-          value: 'Đang tắt',
-          isLast: true,
-        ),
-        const SizedBox(height: 8),
-        _settingRow(
-          Icons.support_agent_rounded,
-          'Tổng đài hỗ trợ MAXKO',
-          '1900 6868 · 08:00–22:00 hàng ngày',
-          onTap: _requireLogin,
-          trailing: 'Gọi ngay',
-        ),
-      ],
-    ),
-  );
-
-  void _requireLogin() {
-    Get.snackbar(
-      'Bản xem trước',
-      'Đăng nhập để sử dụng và lưu thay đổi.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-  }
-
   Widget _memberCard(bool signedIn) {
+    final tier = controller.membershipTierLabel;
+    final points = controller.loyaltyPoints.value;
+    final name = controller.username.value.isNotEmpty
+        ? controller.username.value
+        : 'Thành viên MAXKO';
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [AppColors.primaryDark, Color(0xFF55301F), AppColors.primary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: [Color(0xFF1E232A), Color(0xFF2C323B)],
         ),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: .16),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
+            color: Colors.black.withValues(alpha: .12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -486,21 +161,10 @@ class _AccountViewState extends State<AccountView> {
         children: [
           Row(
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .14),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: .35),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.person_rounded,
-                  color: Colors.white,
-                  size: 30,
-                ),
+              const CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.primary,
+                child: Icon(Icons.person_rounded, color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -508,537 +172,257 @@ class _AccountViewState extends State<AccountView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      signedIn ? controller.username.value : 'Nguyễn Hoàng Nam',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      signedIn ? name : 'Khách vãng lai',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text(
                       signedIn
-                          ? controller.email.value
-                          : 'hoangnam.design@gmail.com',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .74),
-                        fontSize: 12,
+                          ? (controller.phone.value.isNotEmpty
+                              ? controller.phone.value
+                              : controller.email.value)
+                          : 'Đăng nhập để tích điểm',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
                       ),
                     ),
                   ],
                 ),
               ),
-              _tierBadge(signedIn ? controller.membershipTierLabel : 'GOLD'),
+              if (signedIn)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    tier,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
             ],
           ),
-          if (!signedIn) ...[
-            const SizedBox(height: 10),
-            Text(
-              'ID: #MK-88921  ·  Hạng Vàng',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .78),
-                fontSize: 10,
+          if (signedIn) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Điểm tích lũy',
+                        style: TextStyle(color: Colors.white60, fontSize: 10),
+                      ),
+                      Text(
+                        '$points điểm',
+                        style: const TextStyle(
+                          color: Color(0xFFFFB59F),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _showAddresses,
+                  icon: const Icon(
+                    Icons.location_on_outlined,
+                    size: 15,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    'Địa chỉ (${controller.savedAddresses.length})',
+                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.white30),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _tabs() => Row(
+        children: [
+          Expanded(
+            child: ChoiceChip(
+              label: const Center(child: Text('Thông tin cá nhân')),
+              selected: _selectedTab == 0,
+              onSelected: (_) => setState(() => _selectedTab = 0),
+              selectedColor: AppColors.primary,
+              labelStyle: TextStyle(
+                color: _selectedTab == 0 ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+              shape: const StadiumBorder(),
+              side: BorderSide.none,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ChoiceChip(
+              label: const Center(child: Text('Bảo mật & Mật khẩu')),
+              selected: _selectedTab == 1,
+              onSelected: (_) => setState(() => _selectedTab = 1),
+              selectedColor: AppColors.primary,
+              labelStyle: TextStyle(
+                color: _selectedTab == 1 ? Colors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+              shape: const StadiumBorder(),
+              side: BorderSide.none,
+            ),
+          ),
+        ],
+      );
+
+  Widget _profileForm() => _panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _fieldLabel('Họ và tên'),
+            TextField(
+              controller: _name,
+              decoration: const InputDecoration(
+                hintText: 'Nhập họ và tên',
+                prefixIcon: Icon(Icons.person_outline_rounded),
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Điểm tích lũy: 3.850 / 5.000 điểm',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+            _fieldLabel('Số điện thoại'),
+            TextField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                hintText: 'Nhập số điện thoại',
+                prefixIcon: Icon(Icons.phone_outlined),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _fieldLabel('Email'),
+            TextField(
+              controller: TextEditingController(text: controller.email.value),
+              readOnly: true,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.email_outlined),
+                filled: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _fieldLabel('Ngày sinh'),
+            InkWell(
+              onTap: _pickBirthday,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.cake_outlined,
+                      color: AppColors.textSecondary,
                     ),
-                  ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        controller.birthday.value != null
+                            ? _formatDate(controller.birthday.value!)
+                            : 'Chưa cập nhật ngày sinh',
+                        style: TextStyle(
+                          color: controller.birthday.value != null
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const Icon(Icons.edit_calendar_rounded, size: 18),
+                  ],
                 ),
-                Text(
-                  '77%',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: .8),
-                    fontSize: 9,
-                  ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: _saving ? null : _saveProfile,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.save_rounded),
+                label: Text(_saving ? 'Đang lưu...' : 'Cập nhật hồ sơ'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
                 ),
-              ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _securitySettings() => _panel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Đổi mật khẩu',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: const LinearProgressIndicator(
-                value: .77,
-                minHeight: 7,
-                backgroundColor: Colors.white24,
-                valueColor: AlwaysStoppedAnimation(Color(0xFFFFC15A)),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              'Còn 1.150 điểm để chạm hạng VIP Black',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: .78),
-                fontSize: 9,
-              ),
-            ),
-          ],
-          const SizedBox(height: 18),
-          Container(height: 1, color: Colors.white.withValues(alpha: .2)),
-          const SizedBox(height: 13),
-          Row(
-            children: [
-              const Icon(
-                Icons.stars_rounded,
-                color: Color(0xFFFFD18A),
-                size: 20,
-              ),
-              const SizedBox(width: 7),
-              Text(
-                signedIn
-                    ? '${controller.loyaltyPoints.value} điểm thưởng'
-                    : '3.850 điểm tích lũy',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              if (!signedIn)
-                TextButton(
-                  onPressed: controller.login,
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
-                  child: const Text('Đăng nhập'),
-                ),
-            ],
-          ),
-          if (!signedIn) ...[
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .10),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withValues(alpha: .14)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.qr_code_2_rounded,
-                    color: Color(0xFFFFD18A),
-                    size: 27,
-                  ),
-                  const SizedBox(width: 9),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Mã QR thành viên',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Quét tích điểm tại quầy MAXKO',
-                          style: TextStyle(color: Colors.white70, fontSize: 8),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _requireLogin,
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                    ),
-                    child: const Text(
-                      'Xem mã',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _tierBadge(String label) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFD9A6),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        color: AppColors.primaryDark,
-        fontSize: 10,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
-
-  Widget _tabs() => SingleChildScrollView(
-    scrollDirection: Axis.horizontal,
-    child: Row(
-      children: [
-        _tab('Hồ sơ cá nhân', Icons.person_outline_rounded, 0),
-        const SizedBox(width: 8),
-        _tab('Mật khẩu & bảo mật', Icons.shield_outlined, 1),
-      ],
-    ),
-  );
-
-  Widget _tab(String label, IconData icon, int index) {
-    final selected = _selectedTab == index;
-    return ChoiceChip(
-      selected: selected,
-      onSelected: (_) => setState(() => _selectedTab = index),
-      avatar: Icon(
-        icon,
-        size: 16,
-        color: selected ? Colors.white : AppColors.textSecondary,
-      ),
-      label: Text(label),
-      labelStyle: TextStyle(
-        color: selected ? Colors.white : AppColors.textSecondary,
-        fontWeight: FontWeight.w700,
-        fontSize: 12,
-      ),
-      selectedColor: AppColors.primary,
-      backgroundColor: AppColors.surfaceMuted,
-      side: BorderSide.none,
-      shape: const StadiumBorder(),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-    );
-  }
-
-  Widget _profileForm() {
-    return _panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            'Thông tin tài khoản',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Cập nhật hồ sơ để nhận ưu đãi hội viên.',
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Column(
-              children: [
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: const Icon(
-                    Icons.person_rounded,
-                    color: AppColors.primary,
-                    size: 42,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                const Text(
-                  'Ảnh đại diện',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 15),
-          _fieldLabel('Họ và tên'),
-          TextField(
-            controller: _name,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.person_outline_rounded),
-              hintText: 'Nhập họ và tên',
-            ),
-          ),
-          const SizedBox(height: 13),
-          _fieldLabel('Số điện thoại'),
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.phone_outlined),
-              hintText: 'Nhập số điện thoại',
-            ),
-          ),
-          const SizedBox(height: 13),
-          _fieldLabel('Email'),
-          InputDecorator(
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.email_outlined),
-              helperText: 'Liên hệ hỗ trợ để thay đổi email.',
-            ),
-            child: Text(
-              controller.email.value.isEmpty
-                  ? 'Chưa có email'
-                  : controller.email.value,
-            ),
-          ),
-          const SizedBox(height: 13),
-          _fieldLabel('Ngày sinh'),
-          Obx(
-            () => InkWell(
-              onTap: _pickBirthday,
-              borderRadius: BorderRadius.circular(14),
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.calendar_month_outlined),
-                  hintText: 'Chọn ngày sinh',
-                ),
-                child: Text(
-                  controller.birthday.value == null
-                      ? 'Chọn ngày sinh'
-                      : _formatDate(controller.birthday.value!),
-                  style: TextStyle(
-                    color: controller.birthday.value == null
-                        ? AppColors.textSecondary
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 13),
-          _fieldLabel('Giới tính'),
-          Obx(
-            () => Wrap(
-              spacing: 8,
-              children: [
-                _genderOption('Nam', 'male'),
-                _genderOption('Nữ', 'female'),
-                _genderOption('Khác', 'other'),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 50,
-            child: ElevatedButton.icon(
-              onPressed: _saving ? null : _saveProfile,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: Text(_saving ? 'Đang lưu...' : 'Lưu thay đổi hồ sơ'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBright,
-                foregroundColor: Colors.white,
-                shape: const StadiumBorder(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () {
-              _name.text = controller.username.value;
-              _phone.text = controller.phone.value;
-            },
-            child: const Text(
-              'Hủy bỏ',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _genderOption(String label, String value) {
-    final selected = controller.gender.value == value;
-    return ChoiceChip(
-      selected: selected,
-      onSelected: (_) => controller.gender.value = value,
-      label: Text(label),
-      avatar: Icon(
-        selected ? Icons.radio_button_checked : Icons.radio_button_off,
-        size: 15,
-        color: selected ? AppColors.primary : AppColors.textSecondary,
-      ),
-      selectedColor: AppColors.primary.withValues(alpha: .1),
-      backgroundColor: AppColors.surfaceMuted,
-      side: BorderSide(
-        color: selected
-            ? AppColors.primary.withValues(alpha: .35)
-            : Colors.transparent,
-      ),
-    );
-  }
-
-  Widget _securitySettings() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      _panel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
             const Text(
-              'Tiện ích & bảo mật',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              'Cập nhật mật khẩu để bảo mật tài khoản tốt hơn.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
-            const SizedBox(height: 8),
-            _settingRow(
-              Icons.lock_outline_rounded,
-              'Mật khẩu tài khoản',
-              'Đổi mật khẩu để bảo vệ tài khoản',
-              onTap: () => Get.toNamed('/change-password'),
-              trailing: 'Đổi',
-            ),
-            _settingRow(
-              Icons.location_on_outlined,
-              'Địa chỉ giao hàng',
-              'Quản lý địa chỉ đã lưu',
-              onTap: () => _showAddresses(),
-            ),
-            _settingRow(
-              Icons.notifications_none_rounded,
-              'Cài đặt thông báo',
-              'Chọn kênh nhận thông tin',
-              trailing: 'BẬT',
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: () => Get.toNamed('/change-password'),
+                icon: const Icon(Icons.lock_reset_rounded),
+                label: const Text('Đổi mật khẩu tài khoản'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
+                ),
+              ),
             ),
           ],
         ),
-      ),
-      const SizedBox(height: 12),
-      _panel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Kênh nhận thông báo',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            _preferenceSwitch('Thông báo trong ứng dụng', 'push'),
-            _preferenceSwitch('Email', 'email'),
-            _preferenceSwitch('SMS', 'sms'),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      _panel(
-        child: _settingRow(
-          Icons.support_agent_rounded,
-          'Hỗ trợ khách hàng',
-          'Liên hệ cửa hàng để được trợ giúp',
-          onTap: () => Get.snackbar(
-            'Hỗ trợ',
-            'Vui lòng liên hệ trực tiếp với cửa hàng.',
-            snackPosition: SnackPosition.BOTTOM,
-          ),
-        ),
-      ),
-    ],
-  );
-
-  Widget _preferenceSwitch(String label, String key) => Obx(
-    () => SwitchListTile.adaptive(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      title: Text(
-        label,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-      ),
-      value: controller.notificationPreferences[key] ?? false,
-      activeThumbColor: AppColors.primary,
-      onChanged: (value) => _savePreference(key, value),
-    ),
-  );
-
-  Future<void> _savePreference(String key, bool value) async {
-    final updated = Map<String, bool>.from(controller.notificationPreferences)
-      ..[key] = value;
-    try {
-      await controller.updateNotificationPreferences(updated);
-    } catch (error) {
-      Get.snackbar(
-        'Chưa lưu được',
-        error.toString().replaceFirst('Exception: ', ''),
-        snackPosition: SnackPosition.BOTTOM,
       );
-    }
-  }
-
-  Widget _settingRow(
-    IconData icon,
-    String title,
-    String subtitle, {
-    VoidCallback? onTap,
-    String? trailing,
-  }) => Material(
-    color: Colors.transparent,
-    child: ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(13),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (trailing != null)
-            Text(
-              trailing,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.textSecondary,
-          ),
-        ],
-      ),
-    ),
-  );
 
   Widget _signInPrompt() => _panel(
     child: Column(
@@ -1277,58 +661,3 @@ class _AccountViewState extends State<AccountView> {
   }
 }
 
-class _PreviewAccountRow extends StatelessWidget {
-  const _PreviewAccountRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.isLast = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 17, color: AppColors.primary),
-        ),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 9,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
-}

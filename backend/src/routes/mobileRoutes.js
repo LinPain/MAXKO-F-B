@@ -10,8 +10,13 @@ const Order = require('../models/Order');
 const Voucher = require('../models/Voucher');
 const Notification = require('../models/Notification');
 const Product = require('../models/Product');
+const Branch = require('../models/Branch');
+const ModifierGroup = require('../models/ModifierGroup');
+const Reward = require('../models/Reward');
+const Promotion = require('../models/Promotion');
 const { normalizeOrderItems } = require('../services/orderPricingService');
 const requireAuth = require('../middleware/requireAuth');
+const { revoke } = require('../services/accessTokenRevocation');
 const optionalAuth = async (req, res, next) => {
   if (!req.headers.authorization) return next();
   return requireAuth(req, res, next);
@@ -23,11 +28,29 @@ const safeCustomer = (customer) => ({ id: customer.id, name: customer.name, phon
 const success = (res, data, message) => res.json({ success: true, ...(message ? { message } : {}), data });
 async function issueTokens(customer) {
   const refreshToken = crypto.randomBytes(48).toString('hex');
+  const configuredRefreshDays = Number(process.env.REFRESH_TOKEN_TTL_DAYS || 7);
+  const refreshDays = Number.isFinite(configuredRefreshDays)
+    ? Math.max(1, Math.min(30, configuredRefreshDays))
+    : 7;
   customer.refreshTokenHash = hash(refreshToken);
+  customer.refreshTokenExpiresAt = new Date(Date.now() + refreshDays * 86400000);
   await customer.save();
-  return { user: safeCustomer(customer), accessToken: jwt.sign({ sub: customer.id, role: customer.role }, process.env.JWT_SECRET, { expiresIn: '15m' }), refreshToken, expiresIn: 900 };
+  return { user: safeCustomer(customer), accessToken: jwt.sign({ sub: customer.id, role: customer.role }, process.env.JWT_SECRET, { expiresIn: '15m', jwtid: crypto.randomUUID() }), refreshToken, refreshDays, expiresIn: 900 };
 }
-const branches = [{ id: 'b-cau-giay', name: 'MAXKO F&B - Cầu Giấy', address: '123 Cầu Giấy, P. Quan Hoa, Q. Cầu Giấy, Hà Nội', phone: '024 3838 9999', isOpen: true, openTime: '08:00', closeTime: '22:30', gps: { latitude: 21.036237, longitude: 105.790583 } }];
+async function sendTokenResponse(res, customer, message, status = 200) {
+  const tokens = await issueTokens(customer);
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  const sameSite = process.env.COOKIE_SAME_SITE || 'Lax';
+  res.setHeader('Set-Cookie', `refreshToken=${encodeURIComponent(tokens.refreshToken)}; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=${tokens.refreshDays * 86400}${secure}`);
+  res.setHeader('X-Access-Token', tokens.accessToken);
+  const data = { user: tokens.user, accessToken: tokens.accessToken, expiresIn: tokens.expiresIn };
+  return res.status(status).json({ success: true, ...(message ? { message } : {}), data });
+}
+function extractRefreshToken(req) {
+  const cookieValue = String(req.headers.cookie || '').match(/(?:^|;\s*)(?:refreshToken|refresh_token)=([^;]+)/)?.[1];
+  if (cookieValue) return decodeURIComponent(cookieValue);
+  return req.body.refreshToken || req.body.refresh_token || req.headers['x-refresh-token'] || null;
+}
 async function seedDemoVoucher() {
   if (process.env.NODE_ENV === 'production') return;
   const now = new Date();
@@ -118,7 +141,7 @@ router.post('/auth/register', async (req, res, next) => {
       passwordHash: await bcrypt.hash(password, 12),
     });
     await verification.deleteOne();
-    return res.status(201).json({ success: true, message: 'Đăng ký tài khoản thành công.', data: await issueTokens(customer) });
+    return sendTokenResponse(res, customer, 'Đăng ký tài khoản thành công.', 201);
   } catch (error) { next(error); }
 });
 
@@ -126,7 +149,7 @@ router.post('/auth/login', async (req, res, next) => {
   try {
     const customer = await Customer.findOne({ email: String(req.body.email || '').trim().toLowerCase() });
     if (!customer || !(await bcrypt.compare(req.body.password || '', customer.passwordHash))) return res.status(401).json({ success: false, error: 'Email hoặc mật khẩu không đúng.', code: 'INVALID_CREDENTIALS' });
-    success(res, await issueTokens(customer), 'Đăng nhập thành công.');
+    return sendTokenResponse(res, customer, 'Đăng nhập thành công.');
   } catch (error) { next(error); }
 });
 router.post('/auth/change-password', requireAuth, async (req, res, next) => {
@@ -205,13 +228,15 @@ router.post('/auth/forgot-password', async (req, res, next) => {
 router.post('/auth/reset-password', async (req, res, next) => {
   try {
     const email = String(req.body.email || '').trim().toLowerCase();
-    const code = String(req.body.code || '').trim();
-    const password = String(req.body.password || '');
-    if (!/^\S+@\S+\.\S+$/.test(email) || !/^\d{6}$/.test(code) || password.length < 8) {
+    const code = String(req.body.resetToken || req.body.code || '').trim();
+    const password = String(req.body.newPassword || req.body.password || '');
+    if (!code || password.length < 8 || (email && !/^\S+@\S+\.\S+$/.test(email))) {
       return res.status(400).json({ success: false, error: 'Email, mã xác thực hoặc mật khẩu chưa hợp lệ.', code: 'VALIDATION_ERROR' });
     }
 
-    const customer = await Customer.findOne({ email });
+    const customer = email
+      ? await Customer.findOne({ email })
+      : await Customer.findOne({ passwordResetCodeHash: hash(code) });
     const now = new Date();
     if (!customer || !customer.passwordResetCodeHash || !customer.passwordResetCodeExpiresAt ||
         customer.passwordResetCodeExpiresAt <= now || customer.passwordResetCodeAttempts >= 5) {
@@ -231,21 +256,42 @@ router.post('/auth/reset-password', async (req, res, next) => {
     customer.passwordResetCodeExpiresAt = null;
     customer.passwordResetCodeAttempts = 0;
     customer.refreshTokenHash = null;
+    customer.refreshTokenExpiresAt = null;
     await customer.save();
     return success(res, { passwordReset: true }, 'Mật khẩu đã được cập nhật.');
   } catch (error) { next(error); }
 });
 router.post('/auth/refresh-token', async (req, res, next) => {
   try {
-    const refreshToken = req.body.refreshToken;
-    const customer = refreshToken ? await Customer.findOne({ refreshTokenHash: hash(refreshToken) }) : null;
+    const refreshToken = extractRefreshToken(req);
+    const customer = refreshToken ? await Customer.findOne({ refreshTokenHash: hash(refreshToken), refreshTokenExpiresAt: { $gt: new Date() } }) : null;
     if (!customer) return res.status(401).json({ success: false, error: 'Phiên làm việc hết hạn.' });
-    success(res, await issueTokens(customer), 'Làm mới phiên làm việc thành công.');
+    return sendTokenResponse(res, customer, 'Làm mới phiên làm việc thành công.');
+  } catch (error) { next(error); }
+});
+router.post('/auth/refresh', async (req, res, next) => {
+  try {
+    const refreshToken = extractRefreshToken(req);
+    const customer = refreshToken ? await Customer.findOne({ refreshTokenHash: hash(refreshToken), refreshTokenExpiresAt: { $gt: new Date() } }) : null;
+    if (!customer) return res.status(401).json({ success: false, error: 'Phiên làm việc hết hạn.', code: 'UNAUTHORIZED' });
+    return sendTokenResponse(res, customer, 'Làm mới phiên làm việc thành công.');
   } catch (error) { next(error); }
 });
 router.get('/auth/me', requireAuth, (req, res) => success(res, safeCustomer(req.customer)));
 router.post('/auth/logout', requireAuth, async (req, res, next) => {
-  try { req.customer.refreshTokenHash = null; await req.customer.save(); success(res, { loggedOut: true }, 'Đã đăng xuất.'); }
+  try {
+    revoke(req.authPayload?.jti, req.authPayload?.exp);
+    req.customer.refreshTokenHash = null;
+    req.customer.refreshTokenExpiresAt = null;
+    await req.customer.save();
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    const sameSite = process.env.COOKIE_SAME_SITE || 'Lax';
+    res.setHeader('Set-Cookie', [
+      `refreshToken=; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=0${secure}`,
+      `refresh_token=; HttpOnly; SameSite=${sameSite}; Path=/; Max-Age=0${secure}`,
+    ]);
+    success(res, { loggedOut: true }, 'Đã đăng xuất.');
+  }
   catch (error) { next(error); }
 });
 
@@ -255,17 +301,97 @@ router.get('/bootstrap', async (req, res, next) => {
     const products = await Product.find({ isAvailable: true }).sort({ createdAt: -1 }).lean();
     const categories = [...new Set(products.map((product) => product.category))].map((name, i) => ({ id: `cat-${i + 1}`, name }));
     const toppings = [...new Map(products.flatMap((product) => product.toppings || []).map((item) => [item.name, { id: item.name, name: item.name, price: item.extraPrice, isAvailable: true }])).values()];
-    const vouchers = await Voucher.find({ isActive: true }).lean();
+    const vouchers = await Voucher.find({ isActive: true, ownerCustomer: null }).lean();
+    const branches = await Branch.find({ isActive: true, isOpen: true }).lean();
     success(res, { branches, categories, products, toppings, vouchers, campaigns: [] });
   } catch (error) { next(error); }
 });
 router.get('/customers/campaigns', (req, res) => success(res, [{ id: 'camp-maxko20', title: 'Ưu đãi khách hàng mới', bannerUrl: '', startDate: new Date().toISOString().slice(0, 10), endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), voucherCode: 'MAXKO20' }]));
-router.get('/customers/vouchers', async (req, res, next) => {
-  try { await seedDemoVoucher(); success(res, await Voucher.find({ isActive: true }).lean()); } catch (error) { next(error); }
+router.get('/customers/vouchers', optionalAuth, async (req, res, next) => {
+  try {
+    await seedDemoVoucher();
+    const ownership = req.customer
+      ? [{ ownerCustomer: null }, { ownerCustomer: req.customer._id }]
+      : [{ ownerCustomer: null }];
+    const filter = { isActive: true, usedAt: null, $or: ownership };
+    if (req.query.brandId) filter.$and = [{ $or: [{ brandIds: { $size: 0 } }, { brandIds: String(req.query.brandId) }] }];
+    success(res, await Voucher.find(filter).sort({ endDate: 1 }).lean());
+  } catch (error) { next(error); }
+});
+router.get('/customers/rewards', async (req, res, next) => {
+  try {
+    const filter = { isActive: true };
+    if (req.query.brandId) filter.$or = [{ brandIds: { $size: 0 } }, { brandIds: String(req.query.brandId) }];
+    const rewards = await Reward.find(filter).sort({ pointsCost: 1 }).lean();
+    success(res, rewards.map((item) => ({ id: String(item._id), code: item.code, title: item.title, description: item.description, pointsCost: item.pointsCost, discountPercent: item.discountPercent, discountAmount: item.discountAmount, maxDiscount: item.maxDiscount, minOrderTotal: item.minOrderTotal })));
+  } catch (error) { next(error); }
+});
+router.post('/customers/redeem-voucher', requireAuth, async (req, res, next) => {
+  try {
+    const reward = await Reward.findOne({ $or: [{ _id: req.body.rewardId }, { code: String(req.body.code || '').trim().toUpperCase() }], isActive: true });
+    if (!reward) return res.status(404).json({ success: false, error: 'Không tìm thấy phần thưởng.', code: 'REWARD_NOT_FOUND' });
+    const now = new Date();
+    const updated = await Customer.findOneAndUpdate(
+      { _id: req.customer._id, loyaltyPoints: { $gte: reward.pointsCost } },
+      { $inc: { loyaltyPoints: -reward.pointsCost }, $push: { pointsHistory: { date: now, description: `Đổi quà: ${reward.title}`, points: -reward.pointsCost } } },
+      { new: true },
+    );
+    if (!updated) return res.status(400).json({ success: false, error: 'Bạn chưa đủ điểm để đổi phần thưởng này.', code: 'INSUFFICIENT_POINTS' });
+    const validity = Math.max(1, Number(reward.validityDays || 30));
+    let voucher;
+    try {
+      voucher = await Voucher.create({
+        code: `MK${crypto.randomBytes(5).toString('hex').toUpperCase()}`,
+        title: reward.title,
+        discountPercent: reward.discountPercent,
+        discountAmount: reward.discountAmount,
+        maxDiscount: reward.maxDiscount,
+        minOrderTotal: reward.minOrderTotal,
+        ownerCustomer: updated._id,
+        source: 'POINT_REDEMPTION',
+        brandIds: reward.brandIds,
+        startDate: now,
+        endDate: new Date(now.getTime() + validity * 86400000),
+        isActive: true,
+      });
+    } catch (error) {
+      await Customer.updateOne({ _id: updated._id }, { $inc: { loyaltyPoints: reward.pointsCost }, $pull: { pointsHistory: { date: now, description: `Đổi quà: ${reward.title}` } } });
+      throw error;
+    }
+    success(res, { voucher: { id: String(voucher._id), code: voucher.code, title: voucher.title, endDate: voucher.endDate }, loyaltyPoints: updated.loyaltyPoints }, 'Đổi điểm thành công.');
+  } catch (error) { next(error); }
 });
 router.get('/products/categories', async (req, res, next) => {
-  try { const values = await Product.distinct('category', { isAvailable: true }); success(res, values.map((name, i) => ({ id: `cat-${i + 1}`, name }))); }
+  try {
+    const filter = { isAvailable: true };
+    if (req.query.brandId) filter.brandId = req.query.brandId === 'brand-legia' ? { $in: ['brand-legia', null] } : String(req.query.brandId);
+    const values = (await Product.distinct('category', filter)).sort();
+    success(res, values.map((name, i) => ({ id: `cat-${i + 1}`, name })));
+  }
   catch (error) { next(error); }
+});
+router.get('/products/categories/all', async (req, res, next) => {
+  try {
+    const filter = { isAvailable: true };
+    if (req.query.brandId) filter.brandId = req.query.brandId === 'brand-legia' ? { $in: ['brand-legia', null] } : String(req.query.brandId);
+    const values = (await Product.distinct('category', filter)).sort();
+    success(res, values.map((name, i) => ({ id: `cat-${i + 1}`, name })));
+  } catch (error) { next(error); }
+});
+router.get('/modifier-groups', async (req, res, next) => {
+  try {
+    const filter = { isActive: true };
+    if (req.query.brandId) filter.brandId = String(req.query.brandId);
+    const groups = await ModifierGroup.find(filter).sort({ name: 1 }).lean();
+    success(res, groups.map((group) => ({ ...group, id: group.id || String(group._id) })));
+  } catch (error) { next(error); }
+});
+router.get('/modifier-groups/:id', async (req, res, next) => {
+  try {
+    const group = await ModifierGroup.findOne({ id: req.params.id, isActive: true }).lean();
+    if (!group) return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm tùy chọn.', code: 'MODIFIER_GROUP_NOT_FOUND' });
+    success(res, { ...group, id: group.id || String(group._id) });
+  } catch (error) { next(error); }
 });
 router.get('/products/toppings', async (req, res, next) => {
   try {
@@ -275,16 +401,26 @@ router.get('/products/toppings', async (req, res, next) => {
     success(res, [...items.values()]);
   } catch (error) { next(error); }
 });
-router.get('/branches', (req, res) => success(res, branches));
-router.post('/customers/vouchers/validate', async (req, res, next) => {
+router.post('/customers/vouchers/validate', optionalAuth, async (req, res, next) => {
   try {
     await seedDemoVoucher();
     const code = String(req.body.code || '').trim().toUpperCase();
     const orderTotal = Number(req.body.orderTotal || 0);
     const voucher = await Voucher.findOne({ code, isActive: true });
-    if (!voucher || orderTotal < voucher.minOrderTotal || (voucher.startDate && voucher.startDate > new Date()) || (voucher.endDate && voucher.endDate < new Date())) return res.status(400).json({ success: false, error: 'Voucher không hợp lệ hoặc không đủ điều kiện áp dụng.', code: 'VOUCHER_INVALID' });
-    const discountAmount = Math.min(voucher.discountAmount || orderTotal * voucher.discountPercent / 100, voucher.maxDiscount || Number.MAX_SAFE_INTEGER, orderTotal);
-    success(res, { isValid: true, discountAmount, finalTotal: Math.max(0, orderTotal - discountAmount), voucher: { code, discountPercent: voucher.discountPercent, maxDiscount: voucher.maxDiscount } });
+    const now = new Date();
+    if (voucher && (!voucher.ownerCustomer || String(voucher.ownerCustomer) === String(req.customer?._id || '')) && !voucher.usedAt && !voucher.pointsCost && orderTotal >= voucher.minOrderTotal && (!voucher.startDate || voucher.startDate <= now) && (!voucher.endDate || voucher.endDate >= now)) {
+      const discountAmount = Math.round(Math.min(voucher.discountAmount || orderTotal * voucher.discountPercent / 100, voucher.maxDiscount || Number.MAX_SAFE_INTEGER, orderTotal));
+      return success(res, { isValid: true, discountAmount, finalTotal: Math.max(0, orderTotal - discountAmount), voucher: { code, discountPercent: voucher.discountPercent, maxDiscount: voucher.maxDiscount } });
+    }
+    if (!voucher) {
+      const promotion = await Promotion.findOne({ code, isActive: true }).lean();
+      if (promotion && (!promotion.startDate || promotion.startDate <= now) && (!promotion.endDate || promotion.endDate >= now) && orderTotal >= Number(promotion.minOrderTotal || 0)) {
+        const raw = promotion.type === 'PERCENT' ? orderTotal * Number(promotion.value || 0) / 100 : Number(promotion.value || 0);
+        const discountAmount = Math.round(Math.min(raw, promotion.maxDiscount || Number.MAX_SAFE_INTEGER, orderTotal));
+        return success(res, { isValid: true, discountAmount, finalTotal: Math.max(0, orderTotal - discountAmount), voucher: { code, title: promotion.title } });
+      }
+    }
+    return res.status(400).json({ success: false, error: 'Voucher hoặc mã khuyến mãi không hợp lệ hay không đủ điều kiện.', code: 'VOUCHER_INVALID' });
   } catch (error) { next(error); }
 });
 
@@ -351,20 +487,20 @@ router.patch('/dev/orders/:id/status', devOnly, requireAuth, async (req, res, ne
   } catch (error) { next(error); }
 });
 
-router.get('/notifications', requireAuth, async (req, res, next) => {
+router.get(['/notifications', '/notifications/inbox'], requireAuth, async (req, res, next) => {
   try {
     const notifications = await Notification.find({ customer: req.customer._id }).sort({ createdAt: -1 }).limit(100).lean();
     success(res, notifications.map((item) => ({ id: String(item._id), title: item.title, message: item.message, type: item.type, orderId: item.orderId || '', isRead: item.isRead, timeLabel: item.createdAt ? new Date(item.createdAt).toLocaleString('vi-VN') : '', actionLabel: item.type === 'order' ? 'Xem đơn hàng' : 'Xem thông báo', createdAt: item.createdAt })));
   } catch (error) { next(error); }
 });
-router.patch('/notifications/:id/read', requireAuth, async (req, res, next) => {
+router.patch(['/notifications/:id/read', '/notifications/inbox/:id/read'], requireAuth, async (req, res, next) => {
   try {
     const notification = await Notification.findOneAndUpdate({ _id: req.params.id, customer: req.customer._id }, { isRead: true }, { new: true });
     if (!notification) return res.status(404).json({ success: false, error: 'Không tìm thấy thông báo.', code: 'NOTIFICATION_NOT_FOUND' });
     success(res, { id: String(notification._id), isRead: notification.isRead });
   } catch (error) { next(error); }
 });
-router.patch('/notifications/read-all', requireAuth, async (req, res, next) => {
+router.patch(['/notifications/read-all', '/notifications/inbox/mark-all-read'], requireAuth, async (req, res, next) => {
   try {
     const result = await Notification.updateMany({ customer: req.customer._id, isRead: false }, { isRead: true });
     success(res, { modifiedCount: result.modifiedCount }, 'Đã đánh dấu tất cả thông báo là đã đọc.');
@@ -383,6 +519,18 @@ router.put('/customers/me/addresses', requireAuth, async (req, res, next) => {
 
 // Profile and notification settings used by the account experience.
 router.get('/customers/me/profile', requireAuth, (req, res) => success(res, safeCustomer(req.customer)));
+router.get('/customers/me/membership', requireAuth, async (req, res, next) => {
+  try {
+    const history = (req.customer.pointsHistory || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 100);
+    const vouchers = await Voucher.find({ ownerCustomer: req.customer._id, isActive: true, usedAt: null }).sort({ endDate: 1 }).lean();
+    success(res, {
+      membershipTier: req.customer.membershipTier,
+      loyaltyPoints: req.customer.loyaltyPoints,
+      pointsHistory: history,
+      vouchers: vouchers.map((voucher) => ({ id: String(voucher._id), code: voucher.code, title: voucher.title, discountPercent: voucher.discountPercent, discountAmount: voucher.discountAmount, maxDiscount: voucher.maxDiscount, minOrderTotal: voucher.minOrderTotal, endDate: voucher.endDate })),
+    });
+  } catch (error) { next(error); }
+});
 router.patch('/customers/me/profile', requireAuth, async (req, res, next) => {
   try {
     const updates = {};
@@ -458,6 +606,25 @@ router.get('/orders/:id', requireAuth, async (req, res, next) => {
     success(res, { ...order, id: String(order._id), deliveryProgress: null, invoiceDetails: null });
   } catch (error) { next(error); }
 });
+router.get('/customers/:id/profile-360', requireAuth, async (req, res, next) => {
+  try {
+    if (req.params.id !== req.customer.id && req.params.id !== String(req.customer._id)) {
+      return res.status(403).json({ success: false, error: 'Không có quyền xem hồ sơ khách hàng này.', code: 'FORBIDDEN' });
+    }
+    const [orders, vouchers] = await Promise.all([
+      Order.find({ customer: req.customer._id }).sort({ createdAt: -1 }).limit(5).select('orderNumber status finalTotal createdAt branchName').lean(),
+      Voucher.find({ ownerCustomer: req.customer._id, isActive: true, usedAt: null }).sort({ endDate: 1 }).lean(),
+    ]);
+    const orderCount = await Order.countDocuments({ customer: req.customer._id });
+    success(res, {
+      ...safeCustomer(req.customer),
+      pointsHistory: (req.customer.pointsHistory || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 50),
+      orderCount,
+      recentOrders: orders,
+      vouchers: vouchers.map((item) => ({ id: String(item._id), code: item.code, title: item.title, endDate: item.endDate })),
+    });
+  } catch (error) { next(error); }
+});
 router.get('/customers/:id', requireAuth, async (req, res) => {
   if (req.params.id !== req.customer.id) return res.status(403).json({ success: false, error: 'Không có quyền xem tài khoản này.' });
   success(res, { ...safeCustomer(req.customer), pointsHistory: req.customer.pointsHistory });
@@ -478,13 +645,22 @@ router.get('/payments/mqr/banks', (req, res) => success(res, [
   { bankCode: 'TCB', bankName: 'Techcombank', schemeUrl: 'techcombank://' }, { bankCode: 'VPB', bankName: 'VPBank', schemeUrl: 'vpbank://' },
   { bankCode: 'MOMO', bankName: 'MoMo', schemeUrl: 'momo://' }, { bankCode: 'ZALOPAY', bankName: 'ZaloPay', schemeUrl: 'zalopay://' },
 ]));
-router.post('/payments/mqr/generate', async (req, res, next) => {
+router.post(['/payments/mqr/generate', '/payment/qr/generate'], async (req, res, next) => {
   try {
-    const order = await Order.findById(req.body.orderId);
+    const orderId = String(req.body.orderId || '');
+    const order = mongoose.isValidObjectId(orderId)
+      ? await Order.findById(orderId)
+      : await Order.findOne({ orderNumber: orderId });
     if (!order) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng.' });
     return res.status(503).json({ success: false, error: 'VietQR generation requires bank account settings and an approved QR provider connection.', code: 'PAYMENT_NOT_CONFIGURED' });
   } catch (error) { next(error); }
 });
+router.post('/payment/batch/generate-qr', (req, res) => res.status(503).json({
+  success: false,
+  error: 'VietQR thanh toán đơn gom chưa được cấu hình.',
+  message: 'VietQR thanh toán đơn gom chưa được cấu hình.',
+  code: 'PAYMENT_NOT_CONFIGURED',
+}));
 router.get('/payments/mqr/status/:orderId', async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.orderId);

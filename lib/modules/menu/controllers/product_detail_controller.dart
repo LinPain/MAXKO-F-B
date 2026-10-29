@@ -8,75 +8,6 @@ import '../../../data/models/product_option_model.dart';
 import '../../cart/controllers/cart_controller.dart';
 
 class ProductDetailController extends GetxController {
-  static const _defaultSizes = <ProductOptionModel>[
-    ProductOptionModel(
-      id: 'size-m',
-      name: 'M',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-    ProductOptionModel(
-      id: 'size-l',
-      name: 'L',
-      extraPrice: 5000,
-      isAvailable: true,
-    ),
-  ];
-  static const _defaultSugarLevels = <ProductOptionModel>[
-    ProductOptionModel(
-      id: 'sugar-0',
-      name: '0%',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-    ProductOptionModel(
-      id: 'sugar-50',
-      name: '50%',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-    ProductOptionModel(
-      id: 'sugar-100',
-      name: '100%',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-  ];
-  static const _defaultIceLevels = <ProductOptionModel>[
-    ProductOptionModel(
-      id: 'ice-none',
-      name: 'Không đá',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-    ProductOptionModel(
-      id: 'ice-less',
-      name: 'Ít đá',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-    ProductOptionModel(
-      id: 'ice-normal',
-      name: 'Bình thường',
-      extraPrice: 0,
-      isAvailable: true,
-    ),
-  ];
-  static const _defaultToppings = <ProductOptionModel>[
-    ProductOptionModel(
-      id: 'topping-pearl',
-      name: 'Trân châu',
-      extraPrice: 5000,
-      isAvailable: true,
-    ),
-    ProductOptionModel(
-      id: 'topping-jelly',
-      name: 'Thạch',
-      extraPrice: 5000,
-      isAvailable: true,
-    ),
-  ];
-
   final ProductModel product;
 
   ProductDetailController({required this.product});
@@ -91,14 +22,10 @@ class ProductDetailController extends GetxController {
 
   final noteController = TextEditingController();
 
-  List<ProductOptionModel> get sizes =>
-      product.sizes.isEmpty ? _defaultSizes : product.sizes;
-  List<ProductOptionModel> get sugarLevels =>
-      product.sugarLevels.isEmpty ? _defaultSugarLevels : product.sugarLevels;
-  List<ProductOptionModel> get iceLevels =>
-      product.iceLevels.isEmpty ? _defaultIceLevels : product.iceLevels;
-  List<ProductOptionModel> get toppings =>
-      product.toppings.isEmpty ? _defaultToppings : product.toppings;
+  List<ProductOptionModel> get sizes => product.sizes;
+  List<ProductOptionModel> get sugarLevels => product.sugarLevels;
+  List<ProductOptionModel> get iceLevels => product.iceLevels;
+  List<ProductOptionModel> get toppings => product.toppings;
 
   @override
   void onInit() {
@@ -139,7 +66,7 @@ class ProductDetailController extends GetxController {
   }
 
   bool get isValid {
-    return selectedSize.value != null;
+    return sizes.isEmpty || selectedSize.value != null;
   }
 
   void selectSize(ProductOptionModel option) {
@@ -179,8 +106,33 @@ class ProductDetailController extends GetxController {
       iceLevelId: selectedIce.value?.id ?? '',
       toppingIds: selectedToppings.map((item) => item.id).toList(),
       note: noteController.text.trim(),
+      selectedModifiers: [
+        if (selectedSize.value != null)
+          _toModifier(selectedSize.value!, 'mod-legia-size', 'Kích cỡ'),
+        if (selectedSugar.value != null)
+          _toModifier(selectedSugar.value!, 'mod-legia-sugar', 'Độ ngọt'),
+        if (selectedIce.value != null)
+          _toModifier(selectedIce.value!, 'mod-legia-ice', 'Lượng đá'),
+        ...selectedToppings.map(
+          (option) => _toModifier(option, 'mod-legia-toppings', 'Topping'),
+        ),
+      ],
     );
   }
+
+  Map<String, dynamic> _toModifier(
+    ProductOptionModel option,
+    String fallbackGroupId,
+    String fallbackGroupName,
+  ) => {
+    'groupId': option.groupId.isNotEmpty ? option.groupId : fallbackGroupId,
+    'groupName': option.groupName.isNotEmpty
+        ? option.groupName
+        : fallbackGroupName,
+    'optionId': option.id,
+    'optionName': option.name,
+    'priceAdjustment': option.extraPrice,
+  };
 
   void addToCart() {
     if (!isValid) {
@@ -199,6 +151,8 @@ class ProductDetailController extends GetxController {
       productName: product.name,
       unitPrice: unitPrice,
       imageUrl: product.imageUrl,
+      brandId: product.brandId,
+      branchId: product.branchId,
       quantity: quantity.value,
       customization: customization,
     );

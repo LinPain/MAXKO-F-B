@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../data/models/product_model.dart';
+import '../../../data/providers/api_client.dart';
 import '../../main/controllers/main_controller.dart';
+import '../../../widgets/product_card.dart';
 
 class BrandsView extends StatefulWidget {
   const BrandsView({super.key, this.homeMode = false});
@@ -15,67 +20,64 @@ class BrandsView extends StatefulWidget {
 
 class _BrandsViewState extends State<BrandsView> {
   final searchController = TextEditingController();
-  String selectedCategory = 'Tất cả (6)';
+  String selectedCategory = 'Tất cả';
+  String selectedBrand = 'all';
   String search = '';
 
-  static const brands = <_BrandInfo>[
-    _BrandInfo(
-      'MAXKO Tea',
-      'Trà & đồ uống',
-      Icons.local_cafe_rounded,
-      Color(0xFFAB2F00),
-      true,
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCOgKZToP8oRxSCYTDgPjfRRO1tlgR1c92QHWWCiZqYFsEtQwHTda2d1-kSp3UdxNS6LYXr2CbQkKjO5g358d5dJtBiQwxtrPnQ8NHh3oETm4YD3xEyUGupYFzuf4B-rEdkRIgwGWztEqUs1Q0G1DO66doKvcp0RdSvv2FGEum69SFC1dplRZGZRDifk84zWRYo8p6cIXFijFvFUTeQTVpGfJf5uylaRIy0sCMt9tLyR_mw7huCmk0ShA',
-    ),
-    _BrandInfo(
-      'Tokki Korean Street Food',
-      'Ẩm thực Hàn Quốc',
-      Icons.ramen_dining_rounded,
-      Color(0xFFDC2626),
-      false,
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuD1i2LDsapYnoxgzN29Vmz0O3gp9_sMLL7TKheLUOH1IMSQnvT8i0mTdNiBckDQL2bvx90S-fo1QGoiF8MQceTrZwboqgrl5LJW5d_vn2WVQUSBgo4ZSQ3ZjrWqmcSio9COra35eN-IVoFU_66JHICMDrR4gMCrHEJaFgZlg0HQicLr8C5-fERwWri3yELuunAi24-Nbm4Netq9DhZBaujHGwsC9AnrJ-mCEDQuL4htiGWzPqsBmIKuvw',
-    ),
-    _BrandInfo(
-      'Mì Cay 7 Cấp Độ',
-      'Mì cay & lẩu',
-      Icons.local_fire_department_rounded,
-      Color(0xFFB91C1C),
-      false,
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAUK7pWkj06E7Gq3IoPWdgBDiodkvFmJOpLtULN0pP_i1E102Jh1g4tKR8wR6YCyIkvV8WPWTFVT0u6Hwn-RZmrYNgRo8ZSSwTkOxrObeP_jv3lGlpaMMpJ1KyYLLN_yXuqm7V5_-o0EKCvMzpcrammNzBIjhP6vuAop5psRIK9Z-bJ_wd_Y252ATkQiSbmIi1GsoThnACOvVZ2U4gbzMJEbrV1ipN8k74uCcPbfHRecnBYv2GGXx_4Ng',
-    ),
-    _BrandInfo(
-      'Xingfu Trà Sữa',
-      'Trà sữa',
-      Icons.emoji_food_beverage_rounded,
-      Color(0xFF7C3AED),
-      false,
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA0NGv731JRcmRJPppm6oNd27RKfAKh_sWtCa58opLtiAM7jokgU_yiJi3Byw0_yzLfQaoKZqWDSm3GtIHreJpWc6646-yMj9r96u0ss9o564-QYXe2c0HPxRQviug6IT52g2mv3x756HtwJLOeUlkkJrWa4D4V5JCCQQyc1ucOcpIQJ7p9mLn1FL8PAZ1hPAp18keXwaeG1IZsLUdpW5CPDpcTMXP63ia0E8vW9iusqPf3RJNTOlTZsQ',
-    ),
-    _BrandInfo(
-      'Phở & Món Khác',
-      'Món Việt',
-      Icons.soup_kitchen_rounded,
-      Color(0xFF15803D),
-      false,
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA0BdV6rzyx09VrZqdttAss7WcYL5oohOLjrmSUhdrrx1kKJVZx3E5c16y9DnA4XwdbDgA0ZYQabIf0LkLChOLcWpTu6oVMgcLheEk0HecSXbCDasquGoR27NMVb4UT0LHfbaWg0e4pldle2moEOC97b2MUDo2Vvw9BsdIW0BMVwZVvDLvLh0oDa3DIcN6GcvInyYNjEZbnNC903U9IKSgm5TYuj2UBnAEkqIPQmX-WsjsIMdLcDOYumQ',
-    ),
-    _BrandInfo(
-      'MAXKO Bakery & Dessert',
-      'Bánh & tráng miệng',
-      Icons.bakery_dining_rounded,
-      Color(0xFFB45309),
-      false,
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBDl-hz7f8tH2uZ1HbPSLqHJBpz80Ttm6fmZ0jOy2HdUVQaA8Wqg9J2qTcbHpPfP7RASMO0fyq6mg9q4fgmllqF6yrB43K_4BosXCtB671uOfL-7FEmYES61rrXdNQrRNOaugK_CDwB0e7yWhWP1_-lhWqD-1qLZ-EzLAy3A6daRuByz8YeP9AxxKU1jva4CYoXUGiGNSA6aQ6KxAzOmmTUmeK_-YDMIxtU1aINBepjGx5LNgm7nTkyZQ',
-    ),
-  ];
+  List<String> categories = ['Tất cả'];
+  List<ProductModel> products = [];
+  bool isLoading = true;
 
-  static const categories = [
-    'Tất cả (6)',
-    'Trà sữa & Trà mộc',
-    'Món Hàn & Tokbokki',
-    'Mì cay & Lẩu',
-    'Bánh ngọt & Tráng miệng',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadBackendData();
+  }
+
+  Future<void> _loadBackendData() async {
+    try {
+      final api = Get.find<ApiClient>();
+      final categoryRes = await api.get('/api/products/categories/all');
+      final productRes = await api.get('/api/products?availableOnly=true');
+
+      final loadedCategories = <String>['Tất cả'];
+      if (categoryRes is List) {
+        for (final item in categoryRes) {
+          final name = item is Map
+              ? item['name']?.toString() ?? ''
+              : item.toString();
+          if (name.isNotEmpty && !loadedCategories.contains(name)) {
+            loadedCategories.add(name);
+          }
+        }
+      }
+
+      final loadedProducts = <ProductModel>[];
+      if (productRes is List) {
+        for (final item in productRes) {
+          if (item is Map) {
+            loadedProducts.add(
+              ProductModel.fromJson(Map<String, dynamic>.from(item)),
+            );
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          categories = loadedCategories;
+          products = loadedProducts;
+          isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -85,24 +87,20 @@ class _BrandsViewState extends State<BrandsView> {
 
   @override
   Widget build(BuildContext context) {
+    final categoryOptions = widget.homeMode && categories.length == 1
+        ? ['Tất cả', 'Trà & Đồ uống', 'Mì cay & Lẩu', 'Gà rán']
+        : categories;
     final query = search.trim().toLowerCase();
-    final visible = brands.where((brand) {
+    final filtered = products.where((product) {
       final categoryMatches =
-          selectedCategory == 'Tất cả (6)' ||
-          (selectedCategory == 'Trà sữa & Trà mộc'
-              ? brand.name == 'MAXKO Tea' || brand.name == 'Xingfu Trà Sữa'
-              : selectedCategory == 'Món Hàn & Tokbokki'
-              ? brand.name == 'Tokki Korean Street Food' ||
-                    brand.name == 'Phở & Món Khác'
-              : selectedCategory == 'Mì cay & Lẩu'
-              ? brand.name == 'Mì Cay 7 Cấp Độ'
-              : selectedCategory == 'Bánh ngọt & Tráng miệng'
-              ? brand.name == 'MAXKO Bakery & Dessert'
-              : true);
-      return categoryMatches &&
-          (query.isEmpty ||
-              brand.name.toLowerCase().contains(query) ||
-              brand.category.toLowerCase().contains(query));
+          selectedCategory == 'Tất cả' || product.categoryId == selectedCategory;
+      final brandMatches = !widget.homeMode ||
+          selectedBrand == 'all' ||
+          product.brandId == selectedBrand;
+      final searchMatches = query.isEmpty ||
+          product.name.toLowerCase().contains(query) ||
+          product.description.toLowerCase().contains(query);
+      return categoryMatches && brandMatches && searchMatches;
     }).toList();
 
     return SingleChildScrollView(
@@ -111,11 +109,17 @@ class _BrandsViewState extends State<BrandsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (widget.homeMode) ...[
-            _HomeLocationCard(
-              controller: searchController,
-              onChanged: (value) => setState(() => search = value),
-            ),
+            const _HomeLocationCard(),
             const SizedBox(height: 10),
+            const _FulfillmentSelector(),
+            const SizedBox(height: 12),
+            _BrandChipBar(
+              selectedBrand: selectedBrand,
+              onSelected: (value) => setState(() => selectedBrand = value),
+            ),
+            const SizedBox(height: 12),
+            const _CouponBanner(),
+            const SizedBox(height: 12),
           ] else ...[
             const Text(
               'Khám phá MAXKO',
@@ -123,7 +127,7 @@ class _BrandsViewState extends State<BrandsView> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Thương hiệu và món ngon trong cùng một ứng dụng',
+              'Thực đơn & món ngon nguyên chất từ MAXKO F&B',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 14),
@@ -133,7 +137,7 @@ class _BrandsViewState extends State<BrandsView> {
               controller: searchController,
               onChanged: (value) => setState(() => search = value),
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm thương hiệu, món ăn...',
+                hintText: 'Tìm kiếm trà, đồ uống...',
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: search.isEmpty
                     ? null
@@ -158,13 +162,16 @@ class _BrandsViewState extends State<BrandsView> {
             height: 38,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: categories.length,
+              itemCount: categoryOptions.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final category = categories[index];
+                final category = categoryOptions[index];
+                final label = widget.homeMode && index == 0
+                    ? 'Món bán chạy'
+                    : category;
                 final selected = selectedCategory == category;
                 return ChoiceChip(
-                  label: Text(category),
+                  label: Text(label),
                   selected: selected,
                   onSelected: (_) =>
                       setState(() => selectedCategory = category),
@@ -182,26 +189,25 @@ class _BrandsViewState extends State<BrandsView> {
               },
             ),
           ),
-          const SizedBox(height: 16),
-          if (widget.homeMode) ...[
-            _SpotlightBanner(
-              onTap: () => Get.find<MainController>().changeTab(2),
-            ),
-            const SizedBox(height: 4),
-          ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
           Row(
             children: [
+              if (widget.homeMode) ...[
+                const Icon(Icons.local_fire_department_rounded,
+                    color: AppColors.primary, size: 19),
+                const SizedBox(width: 6),
+              ],
               Expanded(
                 child: Text(
-                  widget.homeMode
-                      ? 'Thương hiệu thuộc MAXKO'
-                      : 'Khám phá thương hiệu',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                  widget.homeMode ? 'Món ngon nổi bật' : 'Danh sách món ăn',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
               Text(
-                '${visible.length} nhãn hiệu',
+                '${filtered.length} món',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textSecondary,
@@ -210,29 +216,45 @@ class _BrandsViewState extends State<BrandsView> {
             ],
           ),
           const SizedBox(height: 11),
-          for (final brand in visible) ...[
-            _BrandCard(
-              brand: brand,
-              onTap: brand.connected
-                  ? () => Get.find<MainController>().changeTab(2)
-                  : () => Get.snackbar(
-                      'Sắp ra mắt',
-                      '${brand.name} sẽ có mặt trên MAXKO trong thời gian tới.',
-                      snackPosition: SnackPosition.BOTTOM,
-                    ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (visible.isEmpty)
+          if (isLoading && filtered.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
-              child: Center(child: Text('Không tìm thấy thương hiệu phù hợp.')),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            )
+          else if (filtered.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Text('Không tìm thấy sản phẩm từ máy chủ.'),
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: filtered.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.62,
+              ),
+              itemBuilder: (context, index) {
+                final product = filtered[index];
+                return ProductCard(
+                  product: product,
+                  onTap: () => Get.toNamed(
+                    AppRoutes.productDetail,
+                    arguments: product,
+                  ),
+                );
+              },
             ),
           if (widget.homeMode) ...[
-            const SizedBox(height: 4),
-            const _QualityCommitmentCard(),
-            const SizedBox(height: 12),
-            const _FranchiseCard(),
+            const SizedBox(height: 16),
+            _ComboDealCard(product: filtered.isEmpty ? null : filtered.first),
           ],
         ],
       ),
@@ -241,39 +263,277 @@ class _BrandsViewState extends State<BrandsView> {
 }
 
 class _HomeLocationCard extends StatelessWidget {
-  const _HomeLocationCard({required this.controller, required this.onChanged});
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
+  const _HomeLocationCard();
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(vertical: 5),
+    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceMuted,
+      borderRadius: BorderRadius.circular(16),
+    ),
     child: Row(
       children: [
-        Flexible(child: _LocationPicker()),
-        const SizedBox(width: 8),
-        Expanded(
-          child: SizedBox(
-            height: 42,
-            child: TextField(
-              controller: controller,
-              onChanged: onChanged,
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm thương hiệu, món ăn...',
-                prefixIcon: const Icon(Icons.search_rounded, size: 19),
-                contentPadding: EdgeInsets.zero,
-                filled: true,
-                fillColor: AppColors.surfaceMuted,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
+        Container(
+          width: 38,
+          height: 38,
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFDCD2),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.storefront_rounded,
+              color: AppColors.primary, size: 20),
+        ),
+        const SizedBox(width: 9),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text('CỬA HÀNG PHỤC VỤ', style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: .55,
+                  )),
+                  SizedBox(width: 4),
+                  Icon(Icons.circle, color: AppColors.matcha, size: 6),
+                ],
               ),
-            ),
+              SizedBox(height: 3),
+              Text('128 Cầu Giấy, Hà Nội', style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              )),
+              SizedBox(height: 2),
+              Text('Cách bạn 1.5 km  •  Đang mở cửa', style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 10,
+              )),
+            ],
+          ),
+        ),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
+        ),
+      ],
+    ),
+  );
+}
+
+class _BrandChipBar extends StatelessWidget {
+  const _BrandChipBar({required this.selectedBrand, required this.onSelected});
+
+  final String selectedBrand;
+  final ValueChanged<String> onSelected;
+
+  static const items = [
+    ('all', '▦  Tất cả món'),
+    ('brand-legia', 'Lê Gia'),
+    ('brand-tokki', 'Tokki Gà Rán'),
+    ('brand-micay', 'Mì Cay 7 Cấp Độ'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 37,
+    child: ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: items.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 8),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        final selected = selectedBrand == item.$1;
+        return ChoiceChip(
+          label: Text(item.$2),
+          selected: selected,
+          onSelected: (_) => onSelected(item.$1),
+          showCheckmark: false,
+          selectedColor: AppColors.primary,
+          backgroundColor: AppColors.surfaceMuted,
+          side: BorderSide.none,
+          shape: const StadiumBorder(),
+          labelStyle: TextStyle(
+            color: selected ? Colors.white : AppColors.textPrimary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class _CouponBanner extends StatelessWidget {
+  const _CouponBanner();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFFB92C00), Color(0xFFE34205)],
+      ),
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.primary.withValues(alpha: .18),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .18),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.confirmation_num_outlined,
+              color: Colors.white, size: 23),
+        ),
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('MÃ ĐỘC QUYỀN HÔM NAY', style: TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .45,
+              )),
+              SizedBox(height: 2),
+              Text('GIẢM 30.000đ', style: TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
+                height: 1.1,
+              )),
+              SizedBox(height: 2),
+              Text('Mã: MAXKOFIRST  ·  Đơn từ 80.000đ', style: TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+              )),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        OutlinedButton.icon(
+          onPressed: () {
+            Clipboard.setData(const ClipboardData(text: 'MAXKOFIRST'));
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã sao chép mã MAXKOFIRST')),
+            );
+          },
+          icon: const Icon(Icons.copy_rounded, size: 13),
+          label: const Text('Sao chép', style: TextStyle(fontSize: 10)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            backgroundColor: Colors.white,
+            side: BorderSide.none,
+            padding: const EdgeInsets.symmetric(horizontal: 9),
+            minimumSize: const Size(0, 34),
           ),
         ),
       ],
+    ),
+  );
+}
+
+class _FulfillmentSelector extends StatelessWidget {
+  const _FulfillmentSelector();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(4),
+    decoration: BoxDecoration(
+      color: const Color(0xFFEAE8E5),
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Row(
+      children: [
+        _FulfillmentOption(
+          icon: Icons.delivery_dining_rounded,
+          title: 'Giao tận nơi',
+          detail: '25–30p',
+          selected: true,
+        ),
+        const SizedBox(width: 4),
+        const _FulfillmentOption(
+          icon: Icons.shopping_bag_outlined,
+          title: 'Mang đi',
+          detail: '15p',
+        ),
+        const SizedBox(width: 4),
+        const _FulfillmentOption(
+          icon: Icons.table_restaurant_outlined,
+          title: 'Ăn tại quán',
+          detail: 'Chọn bàn',
+        ),
+      ],
+    ),
+  );
+}
+
+class _FulfillmentOption extends StatelessWidget {
+  const _FulfillmentOption({
+    required this.icon,
+    required this.title,
+    required this.detail,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String detail;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: selected ? Colors.white : AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(
+          color: selected ? AppColors.primary : Colors.transparent,
+          width: selected ? 1.2 : 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: selected ? AppColors.primary : AppColors.textSecondary,
+              size: 17),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: selected ? AppColors.primary : AppColors.textPrimary)),
+                Text(detail, maxLines: 1,
+                    style: const TextStyle(fontSize: 9,
+                      color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -292,7 +552,7 @@ class _LocationPicker extends StatelessWidget {
       children: [
         Flexible(
           child: Text(
-            'TP. Hồ Chí Minh',
+            'Hà Nội / TP.HCM',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
@@ -306,8 +566,12 @@ class _LocationPicker extends StatelessWidget {
 }
 
 class _SpotlightBanner extends StatelessWidget {
-  const _SpotlightBanner({required this.onTap});
+  const _SpotlightBanner({
+    required this.featuredProducts,
+    required this.onTap,
+  });
 
+  final List<ProductModel> featuredProducts;
   final VoidCallback onTap;
 
   @override
@@ -338,7 +602,7 @@ class _SpotlightBanner extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
-            '✦ ƯU ĐÃI THƯƠNG HIỆU NỔI BẬT',
+            '✦ MÓN NGON MÁY CHỦ NỔI BẬT',
             style: TextStyle(
               color: Colors.white,
               fontSize: 9,
@@ -357,29 +621,26 @@ class _SpotlightBanner extends StatelessWidget {
         ),
         const SizedBox(height: 3),
         const Text(
-          'Trà ngon mỗi ngày, ưu đãi dành riêng cho bạn.',
+          'Trà ngon đậm vị, thực đơn chính thức từ hệ thống.',
           style: TextStyle(color: Colors.white, fontSize: 11),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            const Expanded(
-              child: _FeaturedDrink(
-                image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD154_o-pGmUAYAdULQVZa23fF5qrV2vj-yYDdcd0JPkjrvsPlvsClFvrR6iLcG6gFrqU1N6Tsz29PHRVpEwAyqfBUZ0Uxewjgi5E-tZOG2SWRVPXRe8xVbdhrnsfe417F06NZStybfUNPAPaHUrrBfi5ZdR3jHNhI57uwct6KBig-Lmw64h3PfCF5aL4fGzgydIq2SZDCIhhST9Jn0UeASkYRf_6o5-HZ2Xs6gTprZyhb1y0ZM2BLVeg',
-                name: 'Trà Đào Cam Sả',
-                price: '39.000đ',
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Expanded(
-              child: _FeaturedDrink(
-                image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBzHR0RCIt_6l1txkVrmZoyOolOqnhWxlJFriyb3AhkQpkck8ZhRxfcLqv8ylJrz-7ePlpY9Of79F0kplzPSDqiKyvonz1gyFEm8gH2K3PK470owqQnxQQdFzZE1qAEiIj1ucAgClSvc2r7v8Qp4c08Qp7pDWUUBSp2VPfJvzm-2Ie94Z3r0cQaVdnBlMm-XyMMK0YORb21zb5kBPeqJCIbaibLPWoIxvb0YpN2_9USlEe_kf28n7113A',
-                name: 'Trà Tắc Xí Muội',
-                price: '35.000đ',
-              ),
-            ),
-          ],
-        ),
+        if (featuredProducts.isNotEmpty)
+          Row(
+            children: [
+              for (var i = 0; i < featuredProducts.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: _FeaturedDrink(
+                    image: featuredProducts[i].imageUrl,
+                    name: featuredProducts[i].name,
+                    price:
+                        '${featuredProducts[i].price.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')}đ',
+                  ),
+                ),
+              ],
+            ],
+          ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -436,22 +697,15 @@ class _FeaturedDrink extends StatelessWidget {
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(6),
-          child: Image.network(
-            image,
-            width: 38,
-            height: 38,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              width: 38,
-              height: 38,
-              color: Colors.white24,
-              child: const Icon(
-                Icons.local_cafe_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-          ),
+          child: image.isNotEmpty
+              ? Image.network(
+                  image,
+                  width: 38,
+                  height: 38,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _fallbackIcon(),
+                )
+              : _fallbackIcon(),
         ),
         const SizedBox(width: 6),
         Expanded(
@@ -477,6 +731,160 @@ class _FeaturedDrink extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+
+  Widget _fallbackIcon() => Container(
+    width: 38,
+    height: 38,
+    color: Colors.white24,
+    child: const Icon(
+      Icons.local_cafe_rounded,
+      color: Colors.white,
+      size: 18,
+    ),
+  );
+}
+
+class _ComboDealCard extends StatelessWidget {
+  const _ComboDealCard({required this.product});
+
+  final ProductModel? product;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    clipBehavior: Clip.antiAlias,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 132,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (product?.imageUrl.isNotEmpty == true)
+                Image.network(
+                  product!.imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => _comboArtwork(),
+                )
+              else
+                _comboArtwork(),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withValues(alpha: .04), Colors.black87],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                top: 12,
+                child: Row(
+                  children: [
+                    _dealTag('COMBO TIẾT KIỆM'),
+                    const SizedBox(width: 6),
+                    _dealTag('GIẢM 35%'),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 13,
+                right: 13,
+                bottom: 11,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('DÀNH CHO 2 NGƯỜI', style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    )),
+                    const SizedBox(height: 2),
+                    const Text('Combo Cặp Đôi Hỏa Diệm', style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    )),
+                    Text(
+                      product?.name ?? 'Mì cay bò cấp độ 1 + trà sữa trân châu',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('95.000đ', style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    )),
+                    Text('Tiết kiệm 50.000đ khi đặt món', style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 9,
+                    )),
+                  ],
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: () => Get.find<MainController>().changeTab(2),
+                icon: const Icon(Icons.shopping_cart_rounded, size: 16),
+                label: const Text('Chọn Combo'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _dealTag(String text) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(text, style: const TextStyle(
+      color: Colors.white,
+      fontSize: 8,
+      fontWeight: FontWeight.w900,
+    )),
+  );
+
+  Widget _comboArtwork() => Container(
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF572B17), Color(0xFFB94B12), Color(0xFF2B1710)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    child: const Center(
+      child: Icon(Icons.restaurant_menu_rounded,
+          color: Colors.white70, size: 58),
     ),
   );
 }
@@ -580,9 +988,9 @@ class _FranchiseCard extends StatelessWidget {
         ),
       ],
     ),
-    child: Row(
+    child: const Row(
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -612,316 +1020,9 @@ class _FranchiseCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 8),
-        const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 19),
+        SizedBox(width: 8),
+        Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 19),
       ],
     ),
-  );
-}
-
-class _BrandInfo {
-  const _BrandInfo(
-    this.name,
-    this.category,
-    this.icon,
-    this.color,
-    this.connected,
-    this.imageUrl,
-  );
-
-  final String name;
-  final String category;
-  final IconData icon;
-  final Color color;
-  final bool connected;
-  final String imageUrl;
-}
-
-class _BrandCard extends StatelessWidget {
-  const _BrandCard({required this.brand, required this.onTap});
-
-  final _BrandInfo brand;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.card,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(17),
-                ),
-                child: SizedBox(
-                  height: 174,
-                  width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      _BrandPhotoFallback(brand: brand),
-                      Image.network(
-                        brand.imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) =>
-                            _BrandPhotoFallback(brand: brand),
-                      ),
-                      Positioned(
-                        top: 10,
-                        left: 10,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: brand.connected
-                                ? AppColors.primary
-                                : AppColors.primaryDark,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            brand.connected ? 'ĐANG PHỤC VỤ' : 'SẮP KẾT NỐI',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: .4,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Positioned(
-                        top: 10,
-                        right: 10,
-                        child: _RatingPill(),
-                      ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(12, 28, 12, 11),
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Color(0xCC000000)],
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                brand.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                brand.category,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: _BrandStat(
-                            Icons.delivery_dining_rounded,
-                            'Thực đơn',
-                            '20 món',
-                          ),
-                        ),
-                        const Expanded(
-                          child: _BrandStat(
-                            Icons.star_rounded,
-                            'Đánh giá',
-                            '4.9 sao',
-                          ),
-                        ),
-                        Expanded(
-                          child: _BrandStat(
-                            Icons.schedule_rounded,
-                            'Giờ mở cửa',
-                            brand.connected ? '08–22h' : 'Sắp có',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: onTap,
-                            icon: const Icon(
-                              Icons.location_on_outlined,
-                              size: 15,
-                            ),
-                            label: const Text('Xem cơ sở', maxLines: 1),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.textPrimary,
-                              side: BorderSide(color: AppColors.border),
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                              ),
-                              textStyle: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: onTap,
-                            icon: Icon(
-                              brand.connected
-                                  ? Icons.restaurant_menu_rounded
-                                  : Icons.schedule_rounded,
-                              size: 15,
-                            ),
-                            label: Text(
-                              brand.connected ? 'Đặt món ngay' : 'Sắp ra mắt',
-                              maxLines: 1,
-                            ),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: brand.connected
-                                  ? AppColors.primary
-                                  : const Color(0xFF1E232A),
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                              ),
-                              textStyle: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RatingPill extends StatelessWidget {
-  const _RatingPill();
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.star_rounded, size: 13, color: Color(0xFFB45309)),
-        SizedBox(width: 2),
-        Text('4.9', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900)),
-      ],
-    ),
-  );
-}
-
-class _BrandStat extends StatelessWidget {
-  const _BrandStat(this.icon, this.label, this.value);
-  final IconData icon;
-  final String label;
-  final String value;
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 2),
-    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 3),
-    decoration: BoxDecoration(
-      color: AppColors.surfaceMuted,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Column(
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 8, color: AppColors.textSecondary),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800),
-        ),
-      ],
-    ),
-  );
-}
-
-class _BrandPhotoFallback extends StatelessWidget {
-  const _BrandPhotoFallback({required this.brand});
-
-  final _BrandInfo brand;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [brand.color, AppColors.primaryDark],
-      ),
-    ),
-    alignment: Alignment.center,
-    child: Icon(brand.icon, color: Colors.white, size: 54),
   );
 }

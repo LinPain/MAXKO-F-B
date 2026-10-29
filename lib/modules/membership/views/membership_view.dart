@@ -5,34 +5,8 @@ import '../../../app/routes/app_routes.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../widgets/app_section_title.dart';
 import '../../account/controllers/account_controller.dart';
-
-const _previewPointHistory = <Map<String, dynamic>>[
-  {
-    'description': 'Tích điểm đơn hàng #MK-99182',
-    'points': 120,
-    'date': 'Hôm nay · 10:32',
-  },
-  {'description': 'Đổi voucher MAXKO20', 'points': -300, 'date': '18/10/2026'},
-  {
-    'description': 'Tích điểm đơn hàng #MK-98801',
-    'points': 85,
-    'date': '15/10/2026',
-  },
-];
-
-const _previewVouchers = <Map<String, dynamic>>[
-  {
-    'title': 'Giảm 20% đồ uống',
-    'discountPercent': 20,
-    'maxDiscount': 30000,
-    'code': 'MAXKO20',
-  },
-  {
-    'title': 'Tặng topping yêu thích',
-    'discountAmount': 10000,
-    'code': 'TOPPING10',
-  },
-];
+import '../../../data/providers/api_client.dart';
+import 'lucky_wheel_view.dart';
 
 class MembershipView extends StatelessWidget {
   const MembershipView({super.key});
@@ -42,13 +16,9 @@ class MembershipView extends StatelessWidget {
     final account = Get.find<AccountController>();
     return Obx(() {
       final signedIn = account.isLoggedIn.value;
-      final history = signedIn
-          ? account.pointsHistory.toList()
-          : _previewPointHistory;
-      final vouchers = signedIn && account.vouchers.isNotEmpty
-          ? account.vouchers.toList()
-          : _previewVouchers;
-      final points = signedIn ? account.loyaltyPoints.value : 2450;
+      final history = account.pointsHistory.toList();
+      final vouchers = account.vouchers.toList();
+      final points = signedIn ? account.loyaltyPoints.value : 0;
 
       return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 28),
@@ -57,20 +27,22 @@ class MembershipView extends StatelessWidget {
           children: [
             _MembershipPass(
               signedIn: signedIn,
-              name: signedIn ? account.username.value : 'Hoàng Nam',
+              name: signedIn ? account.username.value : 'Khách hàng',
               contact: signedIn ? account.phone.value : '',
-              tier: signedIn ? account.membershipTierLabel : 'GOLD',
+              tier: signedIn ? account.membershipTierLabel : 'HỘI VIÊN',
               points: points,
               onLogin: account.login,
             ),
             if (!signedIn) ...[
               const SizedBox(height: 7),
               const Text(
-                'Dữ liệu hội viên mẫu · Đăng nhập để xem điểm và ưu đãi của bạn',
+                'Đăng nhập để xem điểm và ưu đãi của bạn',
                 style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
               ),
             ],
             const SizedBox(height: 12),
+            _LuckyWheelEntry(onTap: openLuckyWheel),
+            const SizedBox(height: 18),
             _MembershipQuickActions(
               onTap: (index) {
                 if (index == 1) {
@@ -83,7 +55,7 @@ class MembershipView extends StatelessWidget {
                 } else if (index == 3) {
                   Get.snackbar(
                     'Mời bạn bè',
-                    'Chia sẻ mã giới thiệu MAXKO20 để cùng nhận ưu đãi.',
+                    'Chức năng mời bạn bè hiện chưa khả dụng.',
                   );
                 } else {
                   Get.snackbar(
@@ -101,7 +73,7 @@ class MembershipView extends StatelessWidget {
             const SizedBox(height: 9),
             const _BenefitsCard(),
             const SizedBox(height: 18),
-            _PointStoreSection(points: points, preview: !signedIn),
+            _PointStoreSection(points: points, signedIn: signedIn),
             const SizedBox(height: 18),
             const AppSectionTitle(
               title: 'Lịch sử điểm gần đây',
@@ -130,6 +102,42 @@ class MembershipView extends StatelessWidget {
       );
     });
   }
+}
+
+class _LuckyWheelEntry extends StatelessWidget {
+  const _LuckyWheelEntry({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: const Color(0xFFFFF1D6),
+    borderRadius: BorderRadius.circular(16),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Row(
+          children: [
+            const Icon(Icons.casino_rounded, color: AppColors.primary, size: 30),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Vòng quay may mắn', style: TextStyle(fontWeight: FontWeight.w900)),
+                  SizedBox(height: 3),
+                  Text('Thử vận may với quà tặng MAXKO', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 15, color: AppColors.primary),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _MembershipQuickActions extends StatelessWidget {
@@ -187,108 +195,135 @@ class _MembershipQuickActions extends StatelessWidget {
   }
 }
 
-class _PointStoreSection extends StatelessWidget {
-  const _PointStoreSection({required this.points, required this.preview});
+class _PointStoreSection extends StatefulWidget {
+  const _PointStoreSection({required this.points, required this.signedIn});
+
   final int points;
-  final bool preview;
+  final bool signedIn;
 
   @override
-  Widget build(BuildContext context) {
-    const rewards = [
-      ('Voucher 20K', '500 điểm', Icons.local_offer_rounded),
-      ('Topping miễn phí', '300 điểm', Icons.icecream_rounded),
-      ('Nước size M', '1.200 điểm', Icons.local_cafe_rounded),
-      ('Combo MAXKO', '2.000 điểm', Icons.fastfood_rounded),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppSectionTitle(
-          title: 'MAXKO Point Store',
-          subtitle: 'Bạn có ${_formatNumber(points)} điểm',
-          actionLabel: 'Xem tất cả',
-        ),
-        const SizedBox(height: 9),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: rewards.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 9,
-            mainAxisSpacing: 9,
-            childAspectRatio: 1.58,
-          ),
-          itemBuilder: (context, index) {
-            final reward = rewards[index];
-            return InkWell(
-              onTap: () => Get.snackbar(
-                'MAXKO Point Store',
-                preview
-                    ? 'Đăng nhập để đổi quà.'
-                    : 'Tính năng đổi quà sẽ sớm khả dụng.',
-              ),
-              borderRadius: BorderRadius.circular(15),
-              child: Container(
-                padding: const EdgeInsets.all(11),
-                decoration: BoxDecoration(
-                  color: AppColors.card,
-                  borderRadius: BorderRadius.circular(15),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 37,
-                      height: 37,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFE7DC),
-                        borderRadius: BorderRadius.circular(11),
-                      ),
-                      child: Icon(
-                        reward.$3,
-                        color: AppColors.primary,
-                        size: 19,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            reward.$1,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            reward.$2,
-                            style: const TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
+  State<_PointStoreSection> createState() => _PointStoreSectionState();
 }
 
+class _PointStoreSectionState extends State<_PointStoreSection> {
+  final _api = Get.find<ApiClient>();
+  List<Map<String, dynamic>> _rewards = [];
+  String? _redeemingCode;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRewards();
+  }
+
+  Future<void> _loadRewards() async {
+    try {
+      final response = await _api.get('/api/customers/rewards?brandId=brand-legia');
+      if (!mounted) return;
+      setState(() {
+        _rewards = response is List
+            ? response.whereType<Map>().map((item) => Map<String, dynamic>.from(item)).toList()
+            : [];
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _redeem(Map<String, dynamic> reward) async {
+    final code = reward['code']?.toString() ?? '';
+    if (!widget.signedIn || code.isEmpty || _redeemingCode != null) return;
+    setState(() => _redeemingCode = code);
+    try {
+      final response = await _api.post(
+        '/api/customers/redeem-voucher',
+        body: {'code': code},
+      );
+      if (Get.isRegistered<AccountController>()) {
+        final account = Get.find<AccountController>();
+        await account.loadMembershipDetails();
+        await account.loadVouchers();
+      }
+      final voucher = response is Map && response['voucher'] is Map
+          ? response['voucher'] as Map
+          : const <String, dynamic>{};
+      Get.snackbar(
+        'Đổi quà thành công',
+        'Mã ưu đãi: ${voucher['code'] ?? ''}',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (error) {
+      Get.snackbar(
+        'Chưa đổi được quà',
+        error.toString().replaceFirst('Exception: ', ''),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      if (mounted) setState(() => _redeemingCode = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      AppSectionTitle(
+        title: 'MAXKO Point Store',
+        subtitle: 'Bạn có ${_formatNumber(widget.points)} điểm',
+      ),
+      const SizedBox(height: 9),
+      if (_loading)
+        const Padding(
+          padding: EdgeInsets.all(20),
+          child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        )
+      else if (_rewards.isEmpty)
+        const _SurfaceCard(child: _MutedMessage('Chưa có phần thưởng khả dụng.'))
+      else
+        for (final reward in _rewards)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 9),
+            child: _SurfaceCard(
+              child: Row(
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(color: const Color(0xFFFFE7DC), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.card_giftcard_rounded, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(reward['title']?.toString() ?? 'Ưu đãi MAXKO', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        const SizedBox(height: 3),
+                        Text('${_formatNumber((reward['pointsCost'] as num?)?.toInt() ?? 0)} điểm', style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: !widget.signedIn || _redeemingCode != null
+                        ? null
+                        : () => _redeem(reward),
+                    style: FilledButton.styleFrom(minimumSize: const Size(68, 36), padding: const EdgeInsets.symmetric(horizontal: 10)),
+                    child: Text(_redeemingCode == reward['code'] ? '...' : 'Đổi'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      if (!widget.signedIn)
+        const Padding(
+          padding: EdgeInsets.only(top: 2),
+          child: Text('Đăng nhập để đổi điểm lấy voucher.', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+        ),
+    ],
+  );
+}
 class _MembershipFaq extends StatelessWidget {
   const _MembershipFaq();
   @override

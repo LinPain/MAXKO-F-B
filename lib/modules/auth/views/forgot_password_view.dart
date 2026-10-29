@@ -45,8 +45,8 @@ class ForgotPasswordView extends GetView<AuthController> {
                   const SizedBox(height: 8),
                   Obx(() => Text(
                         controller.resetCodeSent.value
-                            ? 'Nhập mã demo 123456 và tạo mật khẩu mới để xem trước quy trình.'
-                            : 'Nhập email đăng ký để tạo mã xác thực demo. Không gửi email trong chế độ xem trước.',
+                            ? 'Nhập reset token nhận qua email và tạo mật khẩu mới.'
+                            : 'Nhập email đăng ký để yêu cầu reset token từ máy chủ.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 14,
@@ -82,18 +82,16 @@ class ForgotPasswordView extends GetView<AuthController> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 18),
-                        _label('Mã xác thực'),
+                        _label('Reset token'),
                         const SizedBox(height: 8),
                         TextField(
                           controller: controller.resetCodeController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.visiblePassword,
                           textInputAction: TextInputAction.next,
-                          autofillHints: const [AutofillHints.oneTimeCode],
-                          maxLength: 6,
                           decoration: _inputDecoration(
-                            hintText: 'Nhập mã gồm 6 chữ số',
+                            hintText: 'Dán reset token từ email',
                             icon: Icons.verified_user_outlined,
-                          ).copyWith(counterText: ''),
+                          ),
                         ),
                         const SizedBox(height: 14),
                         _label('Mật khẩu mới'),

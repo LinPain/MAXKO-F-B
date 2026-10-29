@@ -3,12 +3,16 @@ class ProductOptionModel {
   final String name;
   final double extraPrice;
   final bool isAvailable;
+  final String groupId;
+  final String groupName;
 
   const ProductOptionModel({
     required this.id,
     required this.name,
     required this.extraPrice,
     required this.isAvailable,
+    this.groupId = '',
+    this.groupName = '',
   });
 
   factory ProductOptionModel.fromJson(
@@ -20,9 +24,12 @@ class ProductOptionModel {
           json['name']?.toString() ??
           '',
       name: json['name']?.toString() ?? '',
-      extraPrice:
-      (json['extraPrice'] as num?)?.toDouble() ?? 0,
+      extraPrice: (json['extraPrice'] as num?)?.toDouble() ??
+          (json['priceAdjustment'] as num?)?.toDouble() ??
+          0,
       isAvailable: json['isAvailable'] as bool? ?? true,
+      groupId: json['groupId']?.toString() ?? '',
+      groupName: json['groupName']?.toString() ?? '',
     );
   }
 
@@ -32,6 +39,8 @@ class ProductOptionModel {
       'name': name,
       'extraPrice': extraPrice,
       'isAvailable': isAvailable,
+      'groupId': groupId,
+      'groupName': groupName,
     };
   }
 }

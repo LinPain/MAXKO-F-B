@@ -25,32 +25,19 @@ class NotificationsView extends StatefulWidget {
 
 class _NotificationsViewState extends State<NotificationsView> {
   late final NotificationsController controller;
-  late final List<Map<String, dynamic>> _previewNotifications;
 
   @override
   void initState() {
     super.initState();
     controller = Get.find<NotificationsController>();
-    _previewNotifications = _createPreviewNotifications();
     controller.loadNotifications();
   }
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final liveNotifications = controller.notifications.toList();
-      final showingPreview =
-          liveNotifications.isEmpty && !controller.isLoading.value;
-      final allNotifications = showingPreview
-          ? _previewNotifications
-          : liveNotifications;
-      final notifications = switch (controller.selectedFilter.value) {
-        'order' =>
-          allNotifications.where((item) => item['type'] == 'order').toList(),
-        'promo' =>
-          allNotifications.where((item) => item['type'] == 'promo').toList(),
-        _ => allNotifications,
-      };
+      final allNotifications = controller.notifications.toList();
+      final notifications = controller.filteredNotifications;
       final activeOrder = Get.isRegistered<OrdersController>()
           ? Get.find<OrdersController>().currentOrder.value
           : null;
@@ -63,11 +50,7 @@ class _NotificationsViewState extends State<NotificationsView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (widget.showScrollableHeader) _buildScrollableHeader(),
-              _buildHeader(allNotifications, isPreview: showingPreview),
-              if (showingPreview) ...[
-                const SizedBox(height: 5),
-                _previewNotice(),
-              ],
+              _buildHeader(allNotifications),
               const SizedBox(height: 10),
               _buildFilterBar(allNotifications),
               if (activeOrder != null) ...[
@@ -75,20 +58,19 @@ class _NotificationsViewState extends State<NotificationsView> {
                 _buildActiveOrderCard(activeOrder),
               ],
               const SizedBox(height: 18),
-              if (controller.isLoading.value && liveNotifications.isEmpty)
+              if (controller.isLoading.value && controller.notifications.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 38),
                   child: Center(
                     child: CircularProgressIndicator(color: AppColors.primary),
                   ),
                 )
-              else if (controller.errorMessage.value.isNotEmpty &&
-                  !showingPreview)
+              else if (controller.errorMessage.value.isNotEmpty)
                 _buildErrorState(controller.errorMessage.value)
               else if (notifications.isEmpty)
                 _buildEmptyState()
               else
-                ..._buildGroupedCards(notifications, isPreview: showingPreview),
+                ..._buildGroupedCards(notifications),
               const SizedBox(height: 14),
               _buildNotificationChannels(),
             ],
@@ -101,6 +83,7 @@ class _NotificationsViewState extends State<NotificationsView> {
   Widget _buildScrollableHeader() {
     final main = Get.find<MainController>();
     return AppHeader(
+      showNotificationAction: true,
       onMenuTap: () => widget.scaffoldKey?.currentState?.openDrawer(),
       onSearchTap: () => main.changeTab(1),
       onNotificationTap: main.openNotifications,
@@ -109,88 +92,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     );
   }
 
-  List<Map<String, dynamic>> _createPreviewNotifications() {
-    final now = DateTime.now();
-    return [
-      {
-        'id': 'preview-order-99214',
-        'type': 'order',
-        'title': 'Đơn hàng #MK-99214 đang được giao tới bạn!',
-        'message': 'Tài xế Nguyễn Văn Tuấn đã nhận món và đang trên đường đến địa chỉ của bạn.',
-        'timeLabel': '12 phút',
-        'actionLabel': 'Theo dõi đơn',
-        'isRead': false,
-        'createdAt': now.toIso8601String(),
-      },
-      {
-        'id': 'preview-promo-1',
-        'type': 'promo',
-        'title': 'Flash Sale 11h – 14h',
-        'message': 'Giảm 30K cho Combo Đa Thương Hiệu. Áp dụng khi đặt từ hai thương hiệu.',
-        'timeLabel': '35 phút',
-        'actionLabel': 'Sao chép mã',
-        'isRead': false,
-        'createdAt': now
-            .subtract(const Duration(minutes: 35))
-            .toIso8601String(),
-      },
-      {
-        'id': 'preview-points-1',
-        'type': 'promo',
-        'title': '+24 điểm MAXKO Club được tích lũy!',
-        'message': 'Đơn hàng tại Mì Cay 7 Cấp Độ đã hoàn tất. Điểm hiện có: 1.250 điểm.',
-        'timeLabel': 'Hôm qua',
-        'actionLabel': 'Ví điểm & Đổi quà',
-        'isRead': true,
-        'createdAt': now.subtract(const Duration(days: 1)).toIso8601String(),
-      },
-      {
-        'id': 'preview-voucher-1',
-        'type': 'promo',
-        'title': 'Tặng bạn Voucher 50.000đ nâng hạng VIP GOLD!',
-        'message': 'Chào mừng bạn đến với hạng thành viên VIP GOLD của MAXKO Hospitality.',
-        'timeLabel': '3 ngày trước',
-        'actionLabel': 'Sử dụng ngay',
-        'isRead': true,
-        'createdAt': now.subtract(const Duration(days: 3)).toIso8601String(),
-      },
-      {
-        'id': 'preview-welcome-1',
-        'type': 'promo',
-        'title': 'Chào mừng bạn gia nhập MAXKO F&B!',
-        'message': 'Khám phá Hồng Trà Lê Gia, Tokki, Mì Cay 7 Cấp Độ và nhiều thương hiệu khác.',
-        'timeLabel': '1 tuần trước',
-        'actionLabel': 'Khám phá ngay',
-        'isRead': true,
-        'createdAt': now.subtract(const Duration(days: 7)).toIso8601String(),
-      },
-    ];
-  }
-
-  Widget _previewNotice() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-    decoration: BoxDecoration(
-      color: const Color(0xFFFFF2E8),
-      borderRadius: BorderRadius.circular(11),
-      border: Border.all(color: AppColors.primary.withValues(alpha: .12)),
-    ),
-    child: Text(
-      controller.errorMessage.value.isNotEmpty
-          ? 'Đang hiển thị thông báo mẫu vì chưa kết nối được dữ liệu tài khoản.'
-          : 'BẢN XEM TRƯỚC · Thông báo mẫu, chưa đồng bộ với tài khoản.',
-      style: const TextStyle(
-        color: AppColors.primaryDark,
-        fontSize: 10,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  );
-
-  Widget _buildHeader(
-    List<Map<String, dynamic>> notifications, {
-    required bool isPreview,
-  }) {
+  Widget _buildHeader(List<Map<String, dynamic>> notifications) {
     final unreadCount = notifications
         .where((item) => item['isRead'] != true)
         .length;
@@ -224,13 +126,7 @@ class _NotificationsViewState extends State<NotificationsView> {
           ),
           const SizedBox(width: 5),
           TextButton(
-            onPressed: isPreview
-                ? () => setState(() {
-                    for (final item in _previewNotifications) {
-                      item['isRead'] = true;
-                    }
-                  })
-                : controller.markAllRead,
+            onPressed: controller.markAllRead,
             child: const Text(
               'Đọc tất cả',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
@@ -286,10 +182,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     );
   });
 
-  List<Widget> _buildGroupedCards(
-    List<Map<String, dynamic>> items, {
-    required bool isPreview,
-  }) {
+  List<Widget> _buildGroupedCards(List<Map<String, dynamic>> items) {
     final today = DateTime.now();
     bool isToday(Map<String, dynamic> item) {
       final date = DateTime.tryParse(item['createdAt']?.toString() ?? '');
@@ -308,7 +201,7 @@ class _NotificationsViewState extends State<NotificationsView> {
         recent.map(
           (item) => Padding(
             padding: const EdgeInsets.only(bottom: 9),
-            child: _buildNotificationCard(item, isPreview: isPreview),
+            child: _buildNotificationCard(item),
           ),
         ),
       );
@@ -319,7 +212,7 @@ class _NotificationsViewState extends State<NotificationsView> {
         earlier.map(
           (item) => Padding(
             padding: const EdgeInsets.only(bottom: 9),
-            child: _buildNotificationCard(item, isPreview: isPreview),
+            child: _buildNotificationCard(item),
           ),
         ),
       );
@@ -540,7 +433,6 @@ class _NotificationsViewState extends State<NotificationsView> {
               ),
             ],
           ),
-          const SizedBox(height: 5),
           _channelToggle(
             account,
             'push',
@@ -639,10 +531,7 @@ class _NotificationsViewState extends State<NotificationsView> {
     ),
   );
 
-  Widget _buildNotificationCard(
-    Map<String, dynamic> notification, {
-    required bool isPreview,
-  }) {
+  Widget _buildNotificationCard(Map<String, dynamic> notification) {
     final isOrder = notification['type'] == 'order';
 
     return Container(
@@ -658,11 +547,7 @@ class _NotificationsViewState extends State<NotificationsView> {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () {
-          if (isPreview) {
-            setState(() => notification['isRead'] = true);
-          } else {
-            controller.markRead(notification);
-          }
+          controller.markRead(notification);
           if (isOrder) {
             Get.find<MainController>().changeTab(3);
           } else {
@@ -711,7 +596,6 @@ class _NotificationsViewState extends State<NotificationsView> {
                           ),
                       ],
                     ),
-                    const SizedBox(height: 5),
                     Text(
                       notification['message']?.toString() ?? '',
                       style: const TextStyle(
@@ -739,11 +623,7 @@ class _NotificationsViewState extends State<NotificationsView> {
                         const Spacer(),
                         TextButton(
                           onPressed: () {
-                            if (isPreview) {
-                              setState(() => notification['isRead'] = true);
-                            } else {
-                              controller.markRead(notification);
-                            }
+                            controller.markRead(notification);
                             if (isOrder) {
                               Get.find<MainController>().changeTab(3);
                             } else {
@@ -871,7 +751,6 @@ class _NotificationsViewState extends State<NotificationsView> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 5),
           Text(
             'Các thông báo về đơn hàng và ưu đãi\nsẽ xuất hiện tại đây.',
             textAlign: TextAlign.center,

@@ -4,6 +4,7 @@ class ProductCustomizationModel {
   final String iceLevelId;
   final List<String> toppingIds;
   final String note;
+  final List<Map<String, dynamic>> selectedModifiers;
 
   const ProductCustomizationModel({
     required this.sizeId,
@@ -11,6 +12,7 @@ class ProductCustomizationModel {
     required this.iceLevelId,
     required this.toppingIds,
     required this.note,
+    this.selectedModifiers = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -20,6 +22,7 @@ class ProductCustomizationModel {
       'iceLevelId': iceLevelId,
       'toppingIds': toppingIds,
       'note': note,
+      'selectedModifiers': selectedModifiers,
     };
   }
   factory ProductCustomizationModel.fromJson(
@@ -36,6 +39,11 @@ class ProductCustomizationModel {
           .toList() ??
           [],
       note: json['note']?.toString() ?? '',
+      selectedModifiers: (json['selectedModifiers'] as List?)
+              ?.whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList() ??
+          const [],
     );
   }
 }

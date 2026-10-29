@@ -1,19 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_client.dart';
+import 'api_http_client.dart';
 
 class ApiProvider implements ApiClient {
   ApiProvider({required this.baseUrl, http.Client? client})
-    : _client = client ?? http.Client();
+    : _client = client ?? createApiHttpClient();
 
   final String baseUrl;
   final http.Client _client;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  Future<void>? _refreshInProgress;
+  static const _refreshCookieKey = 'maxkoRefreshCookie';
+  String? _accessToken;
+  Future<bool>? _refreshInProgress;
 
   static const Map<String, String> _headers = {
     'Content-Type': 'application/json',
@@ -48,10 +52,21 @@ class ApiProvider implements ApiClient {
     Map<String, dynamic>? body,
     bool retry = true,
   }) async {
-    final accessToken = await _storage.read(key: 'accessToken');
     final headers = <String, String>{..._headers};
-    if (accessToken != null && accessToken.isNotEmpty) {
-      headers['Authorization'] = 'Bearer $accessToken';
+    if (_accessToken?.isNotEmpty == true) {
+      headers['Authorization'] = 'Bearer $_accessToken';
+    }
+    if (method == 'POST' && path == '/api/orders/batch-checkout') {
+      final idempotencyKey = body?['idempotencyKey']?.toString();
+      if (idempotencyKey?.isNotEmpty == true) {
+        headers['Idempotency-Key'] = idempotencyKey!;
+      }
+    }
+    if (!kIsWeb) {
+      final refreshCookie = await _storage.read(key: _refreshCookieKey);
+      if (refreshCookie?.isNotEmpty == true) {
+        headers['Cookie'] = refreshCookie!;
+      }
     }
 
     http.Response response;
@@ -87,8 +102,9 @@ class ApiProvider implements ApiClient {
       throw Exception('Kết nối máy chủ quá thời gian chờ.');
     }
 
+    _captureSessionHeaders(response);
     if (response.statusCode == 401 && retry) {
-      final refreshed = await _refreshToken();
+      final refreshed = await refreshSession();
       if (refreshed) return _request(method, path, body: body, retry: false);
     }
 
@@ -123,93 +139,126 @@ class ApiProvider implements ApiClient {
     }
   }
 
-  Future<bool> _refreshToken() async {
-    final pending = _refreshInProgress;
-    if (pending != null) {
-      await pending;
-      return (await _storage.read(key: 'accessToken')) != null;
+  void _captureSessionHeaders(http.Response response) {
+    final token = response.headers['x-access-token'];
+    if (token != null && token.isNotEmpty) _accessToken = token;
+    if (kIsWeb) return;
+    final setCookie = response.headers['set-cookie'];
+    if (setCookie == null) return;
+    final match = RegExp(r'(?:^|,\s*)(?:refreshToken|refresh_token)=([^;]+)')
+        .firstMatch(setCookie);
+    if (match != null) {
+      unawaited(_storage.write(
+        key: _refreshCookieKey,
+        value: 'refreshToken=${match.group(1)}',
+      ));
     }
-    final completer = Completer<void>();
+  }
+
+  @override
+  Future<bool> refreshSession() async {
+    final pending = _refreshInProgress;
+    if (pending != null) return pending;
+    final completer = Completer<bool>();
     _refreshInProgress = completer.future;
     try {
-      final refreshToken = await _storage.read(key: 'refreshToken');
-      if (refreshToken == null || refreshToken.isEmpty) return false;
+      final headers = <String, String>{..._headers};
+      if (!kIsWeb) {
+        final cookie = await _storage.read(key: _refreshCookieKey);
+        if (cookie == null || cookie.isEmpty) {
+          completer.complete(false);
+          return false;
+        }
+        headers['Cookie'] = cookie;
+      }
       final response = await _client
-          .post(
-            _uri('/api/auth/refresh-token'),
-            headers: _headers,
-            body: jsonEncode({'refreshToken': refreshToken}),
-          )
-          .timeout(const Duration(seconds: 15));
+          .post(_uri('/api/auth/refresh'), headers: headers, body: '{}')
+          .timeout(const Duration(seconds: 20));
+      _captureSessionHeaders(response);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         await clearTokens();
+        completer.complete(false);
         return false;
       }
       final body = _decode(response);
       final data = body is Map ? body['data'] : null;
-      if (data is! Map || data['accessToken'] == null) {
-        await clearTokens();
-        return false;
+      if (_accessToken == null && data is Map) {
+        _accessToken = data['accessToken']?.toString();
       }
-      await saveTokens(
-        data['accessToken'].toString(),
-        data['refreshToken']?.toString(),
-      );
-      return true;
+      final refreshed = _accessToken?.isNotEmpty == true;
+      if (!refreshed) await clearTokens();
+      completer.complete(refreshed);
+      return refreshed;
     } catch (_) {
       await clearTokens();
+      completer.complete(false);
       return false;
     } finally {
-      completer.complete();
       _refreshInProgress = null;
     }
   }
 
-  Future<void> saveTokens(String accessToken, String? refreshToken) async {
-    await _storage.write(key: 'accessToken', value: accessToken);
-    if (refreshToken != null) {
-      await _storage.write(key: 'refreshToken', value: refreshToken);
-    }
+  @override
+  Future<void> clearTokens() async {
+    _accessToken = null;
+    await _storage.delete(key: _refreshCookieKey);
   }
 
   @override
-  Future<void> clearTokens() async => _storage.deleteAll();
-
-  @override
   Future<void> logout() async {
-    final refreshToken = await _storage.read(key: 'refreshToken');
-    if (refreshToken != null) {
-      await post('/api/auth/logout', body: {'refreshToken': refreshToken});
+    try {
+      await post('/api/auth/logout');
+    } finally {
+      await clearTokens();
     }
-    await clearTokens();
   }
 
   @override
   Future<bool> hasAccessToken() async =>
-      (await _storage.read(key: 'accessToken'))?.isNotEmpty ?? false;
+      _accessToken?.isNotEmpty == true;
 
   @override
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
-  }) =>
-      _authenticate('/api/auth/login', {'email': email, 'password': password});
+  }) async {
+    final data = await _request(
+      'POST',
+      '/api/auth/login',
+      body: {'email': email, 'password': password},
+      retry: false,
+    );
+    if (_accessToken == null && data is Map) {
+      _accessToken = data['accessToken']?.toString();
+    }
+    if (_accessToken?.isNotEmpty != true) {
+      throw Exception('API không trả header X-Access-Token.');
+    }
+    if (data is! Map) throw Exception('Phản hồi đăng nhập không đúng định dạng.');
+    final result = Map<String, dynamic>.from(data);
+    result['accessToken'] = _accessToken;
+    result['user'] ??= result['customer'] ?? result;
+    return result;
+  }
 
   @override
-  Future<Map<String, dynamic>> register({
+  Future<Map<String, dynamic>> registerCustomer({
     required String name,
     required String phone,
     required String email,
-    required String password,
     required String code,
-  }) => _authenticate('/api/auth/register', {
-    'name': name,
-    'phone': phone,
-    'email': email,
-    'password': password,
-    'code': code,
-    'role': 'CUSTOMER',
-  });
+    required String password,
+  }) async {
+    final data = await post('/api/auth/register', body: {
+      'name': name,
+      'phone': phone,
+      'email': email,
+      'code': code,
+      'password': password,
+    });
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw Exception('Phản hồi đăng ký hội viên không đúng định dạng.');
+  }
 
   @override
   Future<void> requestSignupCode({
@@ -217,10 +266,11 @@ class ApiProvider implements ApiClient {
     required String phone,
     required String email,
   }) async {
-    await post(
-      '/api/auth/register/request-code',
-      body: {'name': name, 'phone': phone, 'email': email},
-    );
+    await post('/api/auth/register/request-code', body: {
+      'name': name,
+      'phone': phone,
+      'email': email,
+    });
   }
 
   @override
@@ -230,29 +280,12 @@ class ApiProvider implements ApiClient {
 
   @override
   Future<void> resetPassword({
-    required String email,
-    required String code,
-    required String password,
+    required String resetToken,
+    required String newPassword,
   }) async {
     await post(
       '/api/auth/reset-password',
-      body: {'email': email, 'code': code, 'password': password},
+      body: {'resetToken': resetToken, 'newPassword': newPassword},
     );
-  }
-
-  Future<Map<String, dynamic>> _authenticate(
-    String path,
-    Map<String, dynamic> body,
-  ) async {
-    final data = await _request('POST', path, body: body);
-    if (data is! Map<String, dynamic>) {
-      throw Exception('Phản hồi xác thực không đúng định dạng.');
-    }
-    final accessToken = data['accessToken']?.toString();
-    if (accessToken == null || accessToken.isEmpty) {
-      throw Exception('Máy chủ chưa trả access token cho mobile.');
-    }
-    await saveTokens(accessToken, data['refreshToken']?.toString());
-    return data;
   }
 }

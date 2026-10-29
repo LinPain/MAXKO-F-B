@@ -4,6 +4,7 @@ import 'delivery_tracking_model.dart';
 
 class OrderModel {
   final String id;
+  final String batchId;
   final String orderNumber;
   final String branchName;
   final List<CartItemModel> items;
@@ -15,8 +16,24 @@ class OrderModel {
   final DateTime? createdAt;
   final DeliveryTrackingModel? deliveryTracking;
 
+  OrderModel copyWithBatchId(String value) => OrderModel(
+    id: id,
+    batchId: value,
+    orderNumber: orderNumber,
+    branchName: branchName,
+    items: items,
+    subtotal: subtotal,
+    total: total,
+    orderType: orderType,
+    paymentMethod: paymentMethod,
+    status: status,
+    createdAt: createdAt,
+    deliveryTracking: deliveryTracking,
+  );
+
   const OrderModel({
     required this.id,
+    this.batchId = '',
     this.orderNumber = '',
     required this.branchName,
     required this.items,
@@ -32,6 +49,7 @@ class OrderModel {
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
+      batchId: json['batchId']?.toString() ?? '',
       orderNumber: json['orderNumber']?.toString() ?? '',
       branchName: json['branchName'] ?? json['branchId'] ?? '',
       items:

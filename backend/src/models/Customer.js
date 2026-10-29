@@ -16,6 +16,7 @@ const customerSchema = new mongoose.Schema({
   membershipTier: { type: String, default: 'BRONZE' },
   loyaltyPoints: { type: Number, default: 0 },
   refreshTokenHash: { type: String, default: null },
+  refreshTokenExpiresAt: { type: Date, default: null },
   passwordResetCodeHash: { type: String, default: null },
   passwordResetCodeExpiresAt: { type: Date, default: null },
   passwordResetCodeAttempts: { type: Number, default: 0 },

@@ -5,6 +5,8 @@ class CartItemModel {
   final String productName;
   final double unitPrice;
   final String imageUrl;
+  final String brandId;
+  final String branchId;
 
   final int quantity;
 
@@ -15,6 +17,8 @@ class CartItemModel {
     required this.productName,
     required this.unitPrice,
     required this.imageUrl,
+    this.brandId = 'brand-legia',
+    this.branchId = 'b-cau-giay',
     required this.quantity,
     required this.customization,
   });
@@ -27,6 +31,8 @@ class CartItemModel {
       'productName': productName,
       'unitPrice': unitPrice,
       'imageUrl': imageUrl,
+      'brandId': brandId,
+      'branchId': branchId,
       'quantity': quantity,
       'customization': customization.toJson(),
     };
@@ -40,6 +46,8 @@ class CartItemModel {
       unitPrice:
       (json['unitPrice'] as num?)?.toDouble() ?? 0,
       imageUrl: json['imageUrl'] ?? '',
+      brandId: json['brandId']?.toString() ?? 'brand-legia',
+      branchId: json['branchId']?.toString() ?? 'b-cau-giay',
       quantity:
       (json['quantity'] as num?)?.toInt() ?? 0,
       customization: ProductCustomizationModel.fromJson(

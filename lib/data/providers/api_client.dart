@@ -6,16 +6,17 @@ abstract interface class ApiClient {
   Future<void> clearTokens();
   Future<void> logout();
   Future<bool> hasAccessToken();
+  Future<bool> refreshSession();
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   });
-  Future<Map<String, dynamic>> register({
+  Future<Map<String, dynamic>> registerCustomer({
     required String name,
     required String phone,
     required String email,
-    required String password,
     required String code,
+    required String password,
   });
   Future<void> requestSignupCode({
     required String name,
@@ -24,8 +25,7 @@ abstract interface class ApiClient {
   });
   Future<void> requestPasswordReset({required String email});
   Future<void> resetPassword({
-    required String email,
-    required String code,
-    required String password,
+    required String resetToken,
+    required String newPassword,
   });
 }

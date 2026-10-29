@@ -5,6 +5,7 @@ const Product = require('./src/models/Product');
 
 const products = [
   {
+    id: 'prod-lg-01',
     name: 'Hồng Trà Sữa',
     description: 'Hồng trà kết hợp sữa thơm béo.',
     price: 35000,
@@ -13,7 +14,7 @@ const products = [
     isAvailable: true,
 
     sizes: [
-      { name: 'M', extraPrice: 0 },
+      { name: 'M', extraPrice: 0, isDefault: true },
       { name: 'L', extraPrice: 5000 },
     ],
 
@@ -36,6 +37,7 @@ const products = [
   },
 
   {
+    id: 'prod-lg-02',
     name: 'Trà Đào Cam Sả',
     description: 'Trà đào thanh mát kết hợp cam và sả.',
     price: 39000,
@@ -44,7 +46,7 @@ const products = [
     isAvailable: true,
 
     sizes: [
-      { name: 'M', extraPrice: 0 },
+      { name: 'M', extraPrice: 0, isDefault: true },
       { name: 'L', extraPrice: 5000 },
     ],
 
@@ -67,6 +69,7 @@ const products = [
   },
 
   {
+    id: 'prod-lg-03',
     name: 'Trà Sữa Matcha',
     description: 'Trà sữa matcha thơm đậm vị.',
     price: 42000,
@@ -75,7 +78,7 @@ const products = [
     isAvailable: true,
 
     sizes: [
-      { name: 'M', extraPrice: 0 },
+      { name: 'M', extraPrice: 0, isDefault: true },
       { name: 'L', extraPrice: 5000 },
     ],
 
@@ -98,6 +101,7 @@ const products = [
   },
 
   {
+    id: 'prod-lg-04',
     name: 'Hồng Trà Kem Cheese',
     description: 'Hồng trà kết hợp lớp kem cheese béo mịn.',
     price: 45000,
@@ -106,7 +110,7 @@ const products = [
     isAvailable: true,
 
     sizes: [
-      { name: 'M', extraPrice: 0 },
+      { name: 'M', extraPrice: 0, isDefault: true },
       { name: 'L', extraPrice: 5000 },
     ],
 
@@ -131,20 +135,22 @@ const products = [
 
 async function seedProducts() {
   try {
+    if (!process.env.MONGODB_URI) throw new Error('Set MONGODB_URI before seeding products.');
     await mongoose.connect(process.env.MONGODB_URI);
 
-    console.log('MongoDB connected');
-
-    await Product.deleteMany({});
-
-    await Product.insertMany(products);
-
-    console.log('Products seeded successfully');
-
-    await mongoose.disconnect();
+    for (const product of products) {
+      await Product.updateOne(
+        { name: product.name, brandId: 'brand-legia' },
+        { $set: { ...product, brandId: 'brand-legia' } },
+        { upsert: true },
+      );
+    }
+    process.stdout.write('Sample MAXKO Tea products were inserted or updated.\n');
   } catch (error) {
-    console.error('Seed failed:', error);
-    process.exit(1);
+    process.stderr.write(`Product seed failed: ${error.message}\n`);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect().catch(() => {});
   }
 }
 

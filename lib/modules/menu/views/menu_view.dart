@@ -32,8 +32,6 @@ class MenuView extends GetView<MenuController> {
                       child: _FulfillmentSelector(),
                     ),
                     const SizedBox(height: 7),
-                    const _BrandSelector(),
-                    const SizedBox(height: 8),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: TextField(
@@ -130,15 +128,6 @@ class MenuView extends GetView<MenuController> {
                                 ),
                               ),
                             ),
-                            if (controller.isUsingMockData.value)
-                              const Text(
-                                'BẢN XEM TRƯỚC',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
                             const SizedBox(width: 6),
                             Text(
                               '$count món',
@@ -271,11 +260,11 @@ class _StoreLocation extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                '128 Cầu Giấy, Hà Nội',
+                'Chưa chọn cửa hàng',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
               ),
               Text(
-                'Cách bạn 1,5 km · Đang mở cửa',
+                'Chọn cửa hàng để xem khả năng phục vụ',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 9),
               ),
             ],
@@ -363,115 +352,6 @@ class _FulfillmentSelectorState extends State<_FulfillmentSelector> {
           ),
         ),
       ),
-    ),
-  );
-}
-
-class _BrandSelector extends StatefulWidget {
-  const _BrandSelector();
-  @override
-  State<_BrandSelector> createState() => _BrandSelectorState();
-}
-
-class _BrandSelectorState extends State<_BrandSelector> {
-  int selected = 0;
-  static const brands = [
-    'Tất cả món',
-    'MAXKO Tea',
-    'Tokki Korean',
-    'Mì Cay 7 Cấp Độ',
-  ];
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 34,
-    child: ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      scrollDirection: Axis.horizontal,
-      itemCount: brands.length,
-      separatorBuilder: (_, _) => const SizedBox(width: 7),
-      itemBuilder: (context, index) => ChoiceChip(
-        label: Text(brands[index]),
-        selected: selected == index,
-        onSelected: (_) => setState(() => selected = index),
-        showCheckmark: false,
-        labelStyle: TextStyle(
-          color: selected == index ? Colors.white : AppColors.textPrimary,
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-        ),
-        backgroundColor: AppColors.card,
-        selectedColor: AppColors.primary,
-        side: BorderSide.none,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        shape: const StadiumBorder(),
-      ),
-    ),
-  );
-}
-
-class _MenuOfferBanner extends StatelessWidget {
-  const _MenuOfferBanner();
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        colors: [Color(0xFFAB2F00), Color(0xFFD53E02)],
-      ),
-      borderRadius: BorderRadius.circular(15),
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.primary.withValues(alpha: .15),
-          blurRadius: 12,
-          offset: const Offset(0, 4),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-        const Icon(
-          Icons.confirmation_num_outlined,
-          color: Colors.white,
-          size: 26,
-        ),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'MÃ ĐỘC QUYỀN HÔM NAY',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 8,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: .7,
-                ),
-              ),
-              Text(
-                'Giảm 30.000đ đơn từ 80.000đ',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                'Mã: MAXKO20',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const Icon(Icons.local_offer_rounded, color: Colors.white, size: 17),
-      ],
     ),
   );
 }
@@ -590,4 +470,53 @@ class _MenuMessage extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MenuOfferBanner extends StatelessWidget {
+  const _MenuOfferBanner();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFAB2F00), Color(0xFFD53E02)],
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.local_offer_rounded,
+                color: Colors.white,
+                size: 22,
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ƯU ĐÃI THỰC ĐƠN HÔM NAY',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: .5,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Thưởng thức trà sữa & trà trái cây tươi nguyên chất',
+                      style: TextStyle(color: Colors.white70, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }

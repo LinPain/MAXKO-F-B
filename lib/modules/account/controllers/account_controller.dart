@@ -1,6 +1,10 @@
 import 'package:get/get.dart';
+import '../../../data/providers/api_client.dart';
 
 class AccountController extends GetxController {
+  AccountController({required this.apiProvider});
+
+  final ApiClient apiProvider;
   final isLoggedIn = false.obs;
 
   final username = ''.obs;
@@ -39,7 +43,35 @@ class AccountController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _restoreSession();
     loadVouchers();
+  }
+
+  Future<void> _restoreSession() async {
+    if (!await apiProvider.hasAccessToken() &&
+        !await apiProvider.refreshSession()) {
+      return;
+    }
+    try {
+      final response = await apiProvider.get('/api/auth/me');
+      final user = response is Map && response['user'] is Map
+          ? response['user'] as Map
+          : response;
+      if (user is Map) {
+        setProfile(
+          username: user['name']?.toString() ?? '',
+          email: user['email']?.toString() ?? '',
+          phone: user['phone']?.toString() ?? '',
+          id: user['id']?.toString() ?? user['_id']?.toString() ?? '',
+          tier: user['membershipTier']?.toString() ?? 'BRONZE',
+          points: (user['loyaltyPoints'] as num?)?.toInt() ?? 0,
+          birthday: user['birthday']?.toString(),
+          gender: user['gender']?.toString() ?? 'unspecified',
+        );
+      }
+    } catch (_) {
+      await apiProvider.clearTokens();
+    }
   }
 
   void login() {
@@ -102,42 +134,80 @@ class AccountController extends GetxController {
   }
 
   Future<void> loadNotificationPreferences() async {
-    // Demo preferences are held in memory until an account service is connected.
+    if (!isLoggedIn.value) return;
+    try {
+      final data = await apiProvider.get('/api/customers/me/notification-preferences');
+      if (data is Map) {
+        notificationPreferences.assignAll(
+          Map<String, bool>.from(
+            data.map((key, value) => MapEntry(key.toString(), value == true)),
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   Future<void> updateNotificationPreferences(Map<String, bool> preferences) async {
-    notificationPreferences.assignAll(preferences);
+    try {
+      final data = await apiProvider.put('/api/customers/me/notification-preferences', body: preferences);
+      notificationPreferences.assignAll(
+        data is Map
+            ? Map<String, bool>.from(
+                data.map((key, value) => MapEntry(key.toString(), value == true)),
+              )
+            : preferences,
+      );
+    } catch (_) { Get.snackbar('Không thể lưu', 'Cài đặt thông báo chưa được cập nhật trên máy chủ.'); }
   }
 
   Future<void> loadSavedAddresses() async {
-    if (savedAddresses.isEmpty) {
-      savedAddresses.assignAll([
-        {'label': 'Nhà', 'address': '128 Cầu Giấy, Hà Nội'},
-        {'label': 'Công ty', 'address': 'Tòa nhà Keangnam, Hà Nội'},
-      ]);
-    }
+    if (!isLoggedIn.value) return;
+    try {
+      final data = await apiProvider.get('/api/customers/me/addresses');
+      savedAddresses.assignAll(data is List ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)) : const <Map<String, dynamic>>[]);
+    } catch (_) { savedAddresses.clear(); }
   }
 
   Future<void> updateSavedAddresses(List<Map<String, dynamic>> addresses) async {
-    savedAddresses.assignAll(
-      addresses.map((item) => Map<String, dynamic>.from(item)),
-    );
+    try {
+      final response = await apiProvider.put('/api/customers/me/addresses', body: {'addresses': addresses});
+      final data = response is Map ? response['addresses'] ?? response : response;
+      savedAddresses.assignAll(data is List ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)) : addresses);
+    } catch (_) { Get.snackbar('Không thể lưu', 'Địa chỉ chưa được cập nhật trên máy chủ.'); }
   }
 
   Future<void> loadMembershipDetails() async {
-    if (pointsHistory.isEmpty) {
-      pointsHistory.assignAll([
-        {'title': 'Đơn hàng MAXKO', 'points': 24, 'date': 'Hôm nay'},
-        {'title': 'Ưu đãi thành viên', 'points': 50, 'date': 'Tuần này'},
-      ]);
+    if (!isLoggedIn.value) {
+      pointsHistory.clear();
+      return;
     }
+    try {
+      final data = await apiProvider.get('/api/customers/me/membership');
+      if (data is Map) {
+        loyaltyPoints.value = (data['loyaltyPoints'] as num?)?.toInt() ?? loyaltyPoints.value;
+        final history = data['pointsHistory'];
+        if (history is List) {
+          pointsHistory.assignAll(
+            history.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+          );
+        }
+        final membershipVouchers = data['vouchers'];
+        if (membershipVouchers is List) {
+          vouchers.assignAll(
+            membershipVouchers.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+          );
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> loadVouchers() async {
-    vouchers.assignAll([
-      {'code': 'MAXKO20', 'title': 'Giảm 20%', 'description': 'Đơn từ 80.000đ'},
-      {'code': 'FREESHIP', 'title': 'Miễn phí giao hàng', 'description': 'Đơn từ 100.000đ'},
-    ]);
+    if (!isLoggedIn.value) { vouchers.clear(); return; }
+    try {
+      final response = await apiProvider.get('/api/customers/vouchers?brandId=brand-legia');
+      final data = response is List ? response : response is Map && response['vouchers'] is List ? response['vouchers'] as List : const [];
+      vouchers.assignAll(data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)));
+    } catch (_) { vouchers.clear(); }
   }
 
   bool authenticate({required String identifier, required String password}) {
@@ -154,6 +224,11 @@ class AccountController extends GetxController {
   }
 
   Future<void> logout() async {
+    try {
+      await apiProvider.logout();
+    } catch (_) {
+      await apiProvider.clearTokens();
+    }
     isLoggedIn.value = false;
     username.value = '';
     phone.value = '';
@@ -169,3 +244,4 @@ class AccountController extends GetxController {
     loadVouchers();
   }
 }
+

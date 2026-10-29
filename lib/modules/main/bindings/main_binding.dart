@@ -1,5 +1,9 @@
 import 'package:get/get.dart';
 
+import '../../../app/commerce_dependencies.dart';
+import '../../../data/providers/api_client.dart';
+import '../../../data/providers/api_provider.dart';
+import '../../../data/repositories/product_repository.dart';
 import '../../account/controllers/account_controller.dart';
 
 import '../../menu/controllers/menu_controller.dart';
@@ -16,23 +20,40 @@ class MainBinding extends Bindings {
       Get.put<MainController>(MainController(), permanent: true);
     }
 
+    final baseUrl = apiBaseUrl;
+    if (!Get.isRegistered<ApiClient>()) {
+      Get.put<ApiClient>(ApiProvider(baseUrl: baseUrl), permanent: true);
+    }
+
     if (!Get.isRegistered<AccountController>()) {
       Get.put<AccountController>(
-        AccountController(),
+        AccountController(apiProvider: Get.find<ApiClient>()),
         permanent: true,
       );
     }
 
     // Menu
-    Get.lazyPut<MenuController>(() => MenuController());
+    Get.lazyPut<ProductCatalog>(
+      () => ProductRepository(
+        apiProvider: Get.find<ApiClient>(),
+        brandId: 'brand-legia',
+        branchId: 'b-cau-giay',
+      ),
+    );
+    Get.lazyPut<MenuController>(
+      () => MenuController(productRepository: Get.find<ProductCatalog>()),
+    );
 
     // Cart
     Get.put<CartController>(CartController(), permanent: true);
 
-    Get.put<OrdersController>(OrdersController(), permanent: true);
+    Get.put<OrdersController>(
+      OrdersController(apiProvider: Get.find<ApiClient>()),
+      permanent: true,
+    );
 
     Get.put<NotificationsController>(
-      NotificationsController(),
+      NotificationsController(apiProvider: Get.find<ApiClient>()),
       permanent: true,
     );
   }
