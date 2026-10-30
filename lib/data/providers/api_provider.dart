@@ -172,7 +172,7 @@ class ApiProvider implements ApiClient {
         headers['Cookie'] = cookie;
       }
       final response = await _client
-          .post(_uri('/api/auth/refresh'), headers: headers, body: '{}')
+          .post(_uri('/api/auth/refresh-token'), headers: headers, body: '{}')
           .timeout(const Duration(seconds: 20));
       _captureSessionHeaders(response);
       if (response.statusCode < 200 || response.statusCode >= 300) {

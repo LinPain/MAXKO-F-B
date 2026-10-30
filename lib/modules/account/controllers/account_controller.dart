@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+
 import '../../../data/providers/api_client.dart';
 
 class AccountController extends GetxController {
@@ -127,16 +128,44 @@ class AccountController extends GetxController {
     bool clearBirthday = false,
     String? gender,
   }) async {
-    if (name != null) username.value = name;
-    if (phone != null) this.phone.value = phone;
-    if (birthday != null || clearBirthday) this.birthday.value = clearBirthday ? null : birthday;
-    if (gender != null) this.gender.value = gender;
+    final updates = <String, dynamic>{};
+    if (name != null) updates['name'] = name.trim();
+    if (phone != null) updates['phone'] = phone.trim();
+    if (gender != null) updates['gender'] = gender;
+    if (birthday != null || clearBirthday) {
+      updates['birthday'] = clearBirthday ? null : birthday!.toIso8601String();
+    }
+    if (updates.isEmpty) return;
+    try {
+      final response = await apiProvider.put('/api/auth/me', body: updates);
+      final user = response is Map && response['user'] is Map
+          ? Map<String, dynamic>.from(response['user'] as Map)
+          : response is Map
+          ? Map<String, dynamic>.from(response)
+          : updates;
+      username.value = user['name']?.toString() ?? username.value;
+      this.phone.value = user['phone']?.toString() ?? this.phone.value;
+      if (user.containsKey('birthday')) {
+        this.birthday.value = DateTime.tryParse(
+          user['birthday']?.toString() ?? '',
+        );
+      }
+      if (user['gender'] != null) this.gender.value = user['gender'].toString();
+      Get.snackbar('Đã cập nhật', 'Thông tin cá nhân đã được lưu.');
+    } catch (_) {
+      Get.snackbar(
+        'Không thể lưu',
+        'Thông tin cá nhân chưa được cập nhật trên máy chủ.',
+      );
+    }
   }
 
   Future<void> loadNotificationPreferences() async {
     if (!isLoggedIn.value) return;
     try {
-      final data = await apiProvider.get('/api/customers/me/notification-preferences');
+      final data = await apiProvider.get(
+        '/api/customers/me/notification-preferences',
+      );
       if (data is Map) {
         notificationPreferences.assignAll(
           Map<String, bool>.from(
@@ -147,33 +176,68 @@ class AccountController extends GetxController {
     } catch (_) {}
   }
 
-  Future<void> updateNotificationPreferences(Map<String, bool> preferences) async {
+  Future<void> updateNotificationPreferences(
+    Map<String, bool> preferences,
+  ) async {
     try {
-      final data = await apiProvider.put('/api/customers/me/notification-preferences', body: preferences);
+      final data = await apiProvider.put(
+        '/api/customers/me/notification-preferences',
+        body: preferences,
+      );
       notificationPreferences.assignAll(
         data is Map
             ? Map<String, bool>.from(
-                data.map((key, value) => MapEntry(key.toString(), value == true)),
+                data.map(
+                  (key, value) => MapEntry(key.toString(), value == true),
+                ),
               )
             : preferences,
       );
-    } catch (_) { Get.snackbar('Không thể lưu', 'Cài đặt thông báo chưa được cập nhật trên máy chủ.'); }
+    } catch (_) {
+      Get.snackbar(
+        'Không thể lưu',
+        'Cài đặt thông báo chưa được cập nhật trên máy chủ.',
+      );
+    }
   }
 
   Future<void> loadSavedAddresses() async {
     if (!isLoggedIn.value) return;
     try {
       final data = await apiProvider.get('/api/customers/me/addresses');
-      savedAddresses.assignAll(data is List ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)) : const <Map<String, dynamic>>[]);
-    } catch (_) { savedAddresses.clear(); }
+      savedAddresses.assignAll(
+        data is List
+            ? data.whereType<Map>().map(
+                (item) => Map<String, dynamic>.from(item),
+              )
+            : const <Map<String, dynamic>>[],
+      );
+    } catch (_) {
+      savedAddresses.clear();
+    }
   }
 
-  Future<void> updateSavedAddresses(List<Map<String, dynamic>> addresses) async {
+  Future<void> updateSavedAddresses(
+    List<Map<String, dynamic>> addresses,
+  ) async {
     try {
-      final response = await apiProvider.put('/api/customers/me/addresses', body: {'addresses': addresses});
-      final data = response is Map ? response['addresses'] ?? response : response;
-      savedAddresses.assignAll(data is List ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)) : addresses);
-    } catch (_) { Get.snackbar('Không thể lưu', 'Địa chỉ chưa được cập nhật trên máy chủ.'); }
+      final response = await apiProvider.put(
+        '/api/customers/me/addresses',
+        body: {'addresses': addresses},
+      );
+      final data = response is Map
+          ? response['addresses'] ?? response
+          : response;
+      savedAddresses.assignAll(
+        data is List
+            ? data.whereType<Map>().map(
+                (item) => Map<String, dynamic>.from(item),
+              )
+            : addresses,
+      );
+    } catch (_) {
+      Get.snackbar('Không thể lưu', 'Địa chỉ chưa được cập nhật trên máy chủ.');
+    }
   }
 
   Future<void> loadMembershipDetails() async {
@@ -184,17 +248,22 @@ class AccountController extends GetxController {
     try {
       final data = await apiProvider.get('/api/customers/me/membership');
       if (data is Map) {
-        loyaltyPoints.value = (data['loyaltyPoints'] as num?)?.toInt() ?? loyaltyPoints.value;
+        loyaltyPoints.value =
+            (data['loyaltyPoints'] as num?)?.toInt() ?? loyaltyPoints.value;
         final history = data['pointsHistory'];
         if (history is List) {
           pointsHistory.assignAll(
-            history.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+            history.whereType<Map>().map(
+              (item) => Map<String, dynamic>.from(item),
+            ),
           );
         }
         final membershipVouchers = data['vouchers'];
         if (membershipVouchers is List) {
           vouchers.assignAll(
-            membershipVouchers.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+            membershipVouchers.whereType<Map>().map(
+              (item) => Map<String, dynamic>.from(item),
+            ),
           );
         }
       }
@@ -202,12 +271,25 @@ class AccountController extends GetxController {
   }
 
   Future<void> loadVouchers() async {
-    if (!isLoggedIn.value) { vouchers.clear(); return; }
+    if (!isLoggedIn.value) {
+      vouchers.clear();
+      return;
+    }
     try {
-      final response = await apiProvider.get('/api/customers/vouchers?brandId=brand-legia');
-      final data = response is List ? response : response is Map && response['vouchers'] is List ? response['vouchers'] as List : const [];
-      vouchers.assignAll(data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)));
-    } catch (_) { vouchers.clear(); }
+      final response = await apiProvider.get(
+        '/api/customers/vouchers?brandId=brand-legia',
+      );
+      final data = response is List
+          ? response
+          : response is Map && response['vouchers'] is List
+          ? response['vouchers'] as List
+          : const [];
+      vouchers.assignAll(
+        data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)),
+      );
+    } catch (_) {
+      vouchers.clear();
+    }
   }
 
   bool authenticate({required String identifier, required String password}) {
@@ -235,7 +317,11 @@ class AccountController extends GetxController {
     email.value = '';
     birthday.value = null;
     gender.value = 'unspecified';
-    notificationPreferences.assignAll({'push': true, 'email': true, 'sms': false});
+    notificationPreferences.assignAll({
+      'push': true,
+      'email': true,
+      'sms': false,
+    });
     customerId.value = '';
     membershipTier.value = 'BRONZE';
     loyaltyPoints.value = 0;
@@ -244,4 +330,3 @@ class AccountController extends GetxController {
     loadVouchers();
   }
 }
-

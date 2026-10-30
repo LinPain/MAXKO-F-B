@@ -8,9 +8,7 @@ Express and MongoDB API for the MAXKO F&B customer app. It serves the app's cata
 2. Copy `.env.example` to `.env`. Set `MONGODB_URI`, a random `JWT_SECRET` with at least 32 characters, and SMTP settings if email verification and password reset should send mail.
 3. Start MongoDB, then run `npm run dev` from this directory. The API listens on port 5000 by default.
 4. In the Flutter app, set `API_BASE_URL` to the API address. Android emulators usually reach the host machine at `http://10.0.2.2:5000`; iOS simulators and desktop builds can usually use `http://localhost:5000`. A physical phone needs the computer's LAN address and matching CORS settings where applicable.
-5. Seed products with `npm run seed:products`. To load a clearly labeled demo branch, wheel configuration, and point-store offers in a non-production database, run `npm run seed:demo`.
-
-The demo seed only supplies example records. Replace the branch details, products, rewards, and wheel prize probabilities with approved business data before launch. Wheel spin probabilities are stored server-side and are never sent to the customer app.
+5. Add approved product, branch, promotion, reward, and lucky-wheel records through the database setup used by your team. The customer API returns empty collections until those records are present. Wheel probabilities are stored server-side and are never sent to the customer app.
 
 ## Customer API areas
 
@@ -30,8 +28,7 @@ Refresh tokens expire after seven days by default (`REFRESH_TOKEN_TTL_DAYS`, cap
 
 - Checkout currently accepts cash only. Online/VietQR generation returns an unavailable response until a payment provider and verified callback flow are configured.
 - Stock checks validate whether a product is enabled for sale at a branch. Ingredient-level inventory and recipe deductions are not connected.
-- Branch, product, modifier, promotion, reward, and wheel management require seed scripts or direct database administration; this customer API does not expose staff/admin editing endpoints.
-- The demo branch and rewards are sample records, not verified operating data.
+- Branch, product, modifier, promotion, reward, and wheel management require the connected management system or direct database administration; this customer API does not expose staff/admin editing endpoints.
 - Brand detail requests need matching `Brand` records. The public profile-360 endpoint is restricted to the signed-in customer's own profile. Wheel spins/history also require sign-in even though the Postman examples mark them public; a phone number alone is not identity verification.
 - The proximity endpoint reports the nearest active branch and whether it is inside the proximity radius; sending a push alert still needs a configured notification provider.
-- Postman storefront payloads using `orders`, `orderAmount`, and top-level `latitude`/`longitude` are accepted as compatibility aliases. Product seed records use stable IDs such as `prod-lg-01` as well as Mongo IDs.
+- Postman storefront payloads using `orders`, `orderAmount`, and top-level `latitude`/`longitude` are accepted as compatibility aliases.

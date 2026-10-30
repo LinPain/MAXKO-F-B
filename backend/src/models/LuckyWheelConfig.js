@@ -21,7 +21,7 @@ const configSchema = new mongoose.Schema({
   spinsPerDayByTier: {
     type: Map,
     of: Number,
-    default: { BRONZE: 1, SILVER: 2, GOLD: 3, PLATINUM: 5 },
+    default: {},
   },
 }, { timestamps: true });
 

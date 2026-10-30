@@ -32,7 +32,7 @@ function spinsForTier(config, tier) {
     : config.spinsPerDayByTier || {};
   const normalized = String(tier || 'BRONZE').toUpperCase();
   const aliases = { STANDARD: 'BRONZE', DIAMOND: 'PLATINUM' };
-  const value = limits[normalized] ?? limits[aliases[normalized]] ?? limits.BRONZE ?? 1;
+  const value = limits[normalized] ?? limits[aliases[normalized]] ?? limits.BRONZE ?? 0;
   return Math.max(0, Math.min(20, Number(value) || 0));
 }
 

@@ -24,6 +24,7 @@ class CheckoutController extends GetxController {
 
   final appliedVoucher = ''.obs;
   final discountAmount = 0.0.obs;
+  final deliveryFeeAmount = 0.0.obs;
   final savedAddresses = <Map<String, dynamic>>[].obs;
   final isSavingAddress = false.obs;
   final isLocatingDelivery = false.obs;
@@ -350,7 +351,8 @@ class CheckoutController extends GetxController {
 
   double get subtotal => cartController.subtotal;
 
-  double get deliveryFee => selectedOrderType.value == 'delivery' ? 15000 : 0;
+  double get deliveryFee =>
+      selectedOrderType.value == 'delivery' ? deliveryFeeAmount.value : 0;
 
   double get total => subtotal - discountAmount.value + deliveryFee;
 
@@ -455,7 +457,13 @@ class CheckoutController extends GetxController {
       return;
     }
     try {
-      await apiProvider.post(
+      if (selectedOrderType.value != 'delivery') {
+        deliveryBranchIdsByBrand.assignAll(await _resolveBranchesForCart());
+      }
+      final branchIdsByBrand = Map<String, String>.from(
+        deliveryBranchIdsByBrand,
+      );
+      final precheck = await apiProvider.post(
         '/api/orders/precheck',
         body: {
           'customerPhone': customerPhoneController.text.trim(),
@@ -473,9 +481,7 @@ class CheckoutController extends GetxController {
                 (item) => {
                   'productId': item.productId,
                   'productName': item.productName,
-                  'branchId': selectedOrderType.value == 'delivery'
-                      ? deliveryBranchIdsByBrand[item.brandId] ?? item.branchId
-                      : item.branchId,
+                  'branchId': branchIdsByBrand[item.brandId] ?? item.branchId,
                   'brandId': item.brandId,
                   'quantity': item.quantity,
                   'unitPrice': item.unitPrice,
@@ -486,6 +492,13 @@ class CheckoutController extends GetxController {
               .toList(),
         },
       );
+      final precheckData = precheck is Map && precheck['data'] is Map
+          ? precheck['data'] as Map
+          : precheck;
+      if (precheckData is Map && precheckData['deliveryFee'] is num) {
+        deliveryFeeAmount.value =
+            (precheckData['deliveryFee'] as num).toDouble();
+      }
     } catch (error) {
       Get.snackbar(
         'Chưa thể kiểm tra đơn hàng',
@@ -514,6 +527,50 @@ class CheckoutController extends GetxController {
         'branchIdsByBrand': Map<String, String>.from(deliveryBranchIdsByBrand),
       },
     );
+  }
+
+  Future<Map<String, String>> _resolveBranchesForCart() async {
+    final response = await apiProvider.get('/api/branches?activeOnly=true');
+    final values = response is List
+        ? response
+        : response is Map && response['branches'] is List
+        ? response['branches'] as List
+        : const <dynamic>[];
+    final branches = values
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+    final brandIds = cartController.cartItems.map((item) => item.brandId).toSet();
+    if (brandIds.isEmpty || brandIds.any((brandId) => brandId.isEmpty)) {
+      throw Exception('Sản phẩm chưa được gắn với thương hiệu.');
+    }
+
+    final resolved = <String, String>{};
+    for (final brandId in brandIds) {
+      String? existingBranchId;
+      for (final item in cartController.cartItems) {
+        if (item.brandId == brandId && item.branchId.isNotEmpty) {
+          existingBranchId = item.branchId;
+          break;
+        }
+      }
+      Map<String, dynamic>? branch;
+      for (final candidate in branches) {
+        final assignedBrands = candidate['brandIds'];
+        if (assignedBrands is! List ||
+            assignedBrands.isEmpty ||
+            assignedBrands.any((value) => value.toString() == brandId)) {
+          branch = candidate;
+          break;
+        }
+      }
+      final branchId = existingBranchId ?? branch?['id']?.toString() ?? '';
+      if (branchId.isEmpty) {
+        throw Exception('Chưa có cơ sở đang hoạt động cho thương hiệu $brandId.');
+      }
+      resolved[brandId] = branchId;
+    }
+    return resolved;
   }
 
   void clearVoucher() {

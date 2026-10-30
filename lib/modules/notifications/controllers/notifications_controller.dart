@@ -22,7 +22,7 @@ class NotificationsController extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final data = await apiProvider.get('/api/notifications');
+      final data = await apiProvider.get('/api/notifications/inbox');
       notifications.assignAll(data is List ? data.whereType<Map>().map((item) => Map<String, dynamic>.from(item)) : const <Map<String, dynamic>>[]);
     } catch (error) {
       notifications.clear();
@@ -33,7 +33,7 @@ class NotificationsController extends GetxController {
   Future<void> markRead(Map<String, dynamic> notification) async {
     if (notification['isRead'] == true) return;
     try {
-      await apiProvider.patch('/api/notifications/${notification['id']}/read');
+      await apiProvider.patch('/api/notifications/inbox/${notification['id']}/read');
       notification['isRead'] = true;
       notifications.refresh();
     } catch (error) { errorMessage.value = error.toString().replaceFirst('Exception: ', ''); }
@@ -41,7 +41,7 @@ class NotificationsController extends GetxController {
 
   Future<void> markAllRead() async {
     try {
-      await apiProvider.patch('/api/notifications/read-all');
+      await apiProvider.patch('/api/notifications/inbox/mark-all-read');
       for (final item in notifications) { item['isRead'] = true; }
       notifications.refresh();
     } catch (error) { errorMessage.value = error.toString().replaceFirst('Exception: ', ''); }

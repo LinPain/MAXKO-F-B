@@ -14,7 +14,7 @@ const { isRevoked } = require('../services/accessTokenRevocation');
 const { normalizeOrderItems } = require('../services/orderPricingService');
 
 const router = express.Router();
-const deliveryFee = Math.max(0, Number(process.env.DELIVERY_FEE || 15000));
+const deliveryFee = Math.max(0, Number(process.env.DELIVERY_FEE || 0));
 const success = (res, data, message) => res.json({ success: true, ...(message ? { message } : {}), data });
 
 async function optionalCustomer(req) {

@@ -18,7 +18,7 @@ class CartItemModel {
     required this.unitPrice,
     required this.imageUrl,
     this.brandId = 'brand-legia',
-    this.branchId = 'b-cau-giay',
+    this.branchId = '',
     required this.quantity,
     required this.customization,
   });
@@ -47,7 +47,7 @@ class CartItemModel {
       (json['unitPrice'] as num?)?.toDouble() ?? 0,
       imageUrl: json['imageUrl'] ?? '',
       brandId: json['brandId']?.toString() ?? 'brand-legia',
-      branchId: json['branchId']?.toString() ?? 'b-cau-giay',
+      branchId: json['branchId']?.toString() ?? '',
       quantity:
       (json['quantity'] as num?)?.toInt() ?? 0,
       customization: ProductCustomizationModel.fromJson(

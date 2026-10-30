@@ -49,8 +49,10 @@ class _LuckyWheelViewState extends State<LuckyWheelView>
   late final AnimationController _controller;
   Animation<double>? _rotation;
   List<Map<String, dynamic>> _prizeOptions = [];
+  List<Map<String, dynamic>> _spinHistory = [];
   double _turns = 0;
   bool _isLoading = true;
+  bool _isHistoryLoading = false;
   bool _isSubmitting = false;
   int _spinsRemaining = 0;
   Map<String, dynamic>? _pendingPrize;
@@ -81,6 +83,7 @@ class _LuckyWheelViewState extends State<LuckyWheelView>
             }
           });
     _loadConfig();
+    _loadHistory();
   }
 
   @override
@@ -112,6 +115,31 @@ class _LuckyWheelViewState extends State<LuckyWheelView>
         _isLoading = false;
         _loadError = error.toString().replaceFirst('Exception: ', '');
       });
+    }
+  }
+
+  Future<void> _loadHistory() async {
+    final account = Get.isRegistered<AccountController>()
+        ? Get.find<AccountController>()
+        : null;
+    if (account?.isLoggedIn.value != true) return;
+    if (mounted) setState(() => _isHistoryLoading = true);
+    try {
+      final response = await Get.find<ApiClient>().get(
+        '/api/marketing/lucky-wheel/history',
+      );
+      if (!mounted) return;
+      setState(() {
+        _spinHistory = response is List
+            ? response
+                  .whereType<Map>()
+                  .map((item) => Map<String, dynamic>.from(item))
+                  .toList()
+            : [];
+        _isHistoryLoading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isHistoryLoading = false);
     }
   }
 
@@ -149,6 +177,7 @@ class _LuckyWheelViewState extends State<LuckyWheelView>
         _spinsRemaining = (response['spinsRemaining'] as num?)?.toInt() ?? 0;
       });
       _controller.forward(from: 0);
+      _loadHistory();
       if (Get.isRegistered<AccountController>()) {
         final account = Get.find<AccountController>();
         await account.loadMembershipDetails();
@@ -346,8 +375,82 @@ class _LuckyWheelViewState extends State<LuckyWheelView>
             'Lượt quay và phần thưởng được quản lý bởi tài khoản MAXKO của bạn.',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
           ),
+          const SizedBox(height: 22),
+          const Text(
+            'Lịch sử quay',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 9),
+          _buildHistory(),
         ],
       ),
+    );
+  }
+
+  Widget _buildHistory() {
+    final isLoggedIn = Get.isRegistered<AccountController>() &&
+        Get.find<AccountController>().isLoggedIn.value;
+    if (!isLoggedIn) {
+      return const Text(
+        'Đăng nhập để xem lịch sử lượt quay.',
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+      );
+    }
+    if (_isHistoryLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_spinHistory.isEmpty) {
+      return const Text(
+        'Chưa có lượt quay nào.',
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+      );
+    }
+    return Column(
+      children: _spinHistory.map((spin) {
+        final label = spin['prizeLabel']?.toString() ?? '';
+        final code = spin['voucherCode']?.toString() ?? '';
+        final points = (spin['pointsAwarded'] as num?)?.toInt() ?? 0;
+        final createdAt = DateTime.tryParse(spin['createdAt']?.toString() ?? '');
+        final dateLabel = createdAt == null
+            ? ''
+            : '${createdAt.toLocal().day.toString().padLeft(2, '0')}/'
+                  '${createdAt.toLocal().month.toString().padLeft(2, '0')}/'
+                  '${createdAt.toLocal().year}  '
+                  '${createdAt.toLocal().hour.toString().padLeft(2, '0')}:'
+                  '${createdAt.toLocal().minute.toString().padLeft(2, '0')}';
+        final details = <String>[
+          if (points > 0) '$points điểm',
+          if (code.isNotEmpty) 'Mã: $code',
+        ];
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.casino_rounded, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    if (dateLabel.isNotEmpty)
+                      Text(dateLabel, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                    if (details.isNotEmpty)
+                      Text(details.join(' · '), style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

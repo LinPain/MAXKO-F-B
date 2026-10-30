@@ -67,12 +67,10 @@ class MembershipView extends StatelessWidget {
             ),
             const SizedBox(height: 17),
             const AppSectionTitle(
-              title: 'Đặc quyền Gold Member',
-              subtitle: 'Ưu đãi dành riêng cho hội viên MAXKO',
+              title: 'Chương trình hội viên',
+              subtitle: 'Thông tin điểm và phần thưởng từ tài khoản của bạn',
             ),
             const SizedBox(height: 9),
-            const _BenefitsCard(),
-            const SizedBox(height: 18),
             _PointStoreSection(points: points, signedIn: signedIn),
             const SizedBox(height: 18),
             const AppSectionTitle(
@@ -299,7 +297,7 @@ class _PointStoreSectionState extends State<_PointStoreSection> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(reward['title']?.toString() ?? 'Ưu đãi MAXKO', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                        Text(reward['title']?.toString() ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
                         const SizedBox(height: 3),
                         Text('${_formatNumber((reward['pointsCost'] as num?)?.toInt() ?? 0)} điểm', style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.w800)),
                       ],
@@ -753,80 +751,6 @@ class _VoucherTile extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _BenefitsCard extends StatelessWidget {
-  const _BenefitsCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return _SurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Đặc quyền thành viên',
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          const _BenefitRow(
-            icon: Icons.stars_rounded,
-            title: 'Tích điểm đơn hàng',
-            detail: 'Theo dõi điểm thưởng trong tài khoản của bạn.',
-          ),
-          const SizedBox(height: 10),
-          const _BenefitRow(
-            icon: Icons.local_offer_outlined,
-            title: 'Ưu đãi cá nhân',
-            detail: 'Xem voucher khả dụng ngay trong ứng dụng.',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BenefitRow extends StatelessWidget {
-  const _BenefitRow({
-    required this.icon,
-    required this.title,
-    required this.detail,
-  });
-
-  final IconData icon;
-  final String title;
-  final String detail;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.amber),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                detail,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: AppColors.textSecondary),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

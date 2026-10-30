@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../data/providers/api_client.dart';
 import '../../../data/models/order_model.dart';
-import '../../../data/models/order_status.dart';
 import '../../cart/controllers/cart_controller.dart';
 import '../../main/controllers/main_controller.dart';
 import '../../orders/controllers/orders_controller.dart';
@@ -77,7 +76,6 @@ class PaymentController extends GetxController {
         (_) => secureRandom.nextInt(256),
       ).map((value) => value.toRadixString(16).padLeft(2, '0')).join();
       const method = 'CASH';
-      final now = DateTime.now();
       final groups = <String, List<dynamic>>{};
       final branchIds = checkout['branchIdsByBrand'] is Map
           ? Map<String, dynamic>.from(checkout['branchIdsByBrand'] as Map)
@@ -91,7 +89,7 @@ class PaymentController extends GetxController {
       final groupedOrders = groups.entries.map((entry) {
         final isDelivery = checkout['orderType']?.toString() == 'DELIVERY';
         final deliveryShippingFee = isDelivery && groupIndex == 0
-            ? (checkout['deliveryFee'] as num?)?.toDouble() ?? 15000
+            ? (checkout['deliveryFee'] as num?)?.toDouble() ?? 0
             : 0;
         groupIndex++;
         final ids = entry.key.split('|');
@@ -149,24 +147,13 @@ class PaymentController extends GetxController {
       final parsedOrder = firstServerOrder.isNotEmpty
           ? OrderModel.fromJson(firstServerOrder)
           : null;
-      final orderCode = batchId.isNotEmpty
-          ? batchId
-          : now.millisecondsSinceEpoch.toRadixString(36).toUpperCase();
-      final order = OrderModel(
-        id: parsedOrder?.id.isNotEmpty == true ? parsedOrder!.id : orderCode,
-        batchId: batchId,
-        orderNumber: parsedOrder?.orderNumber ?? 'MK-$orderCode',
-        branchName: parsedOrder?.branchName ?? 'MAXKO F&B',
-        items: parsedOrder?.items.isNotEmpty == true
-            ? parsedOrder!.items
-            : List.from(cartController.cartItems),
-        subtotal: parsedOrder?.subtotal ?? cartController.subtotal,
-        total: parsedOrder?.total ?? total,
-        orderType: checkout['orderType']?.toString() ?? 'TAKEAWAY',
-        paymentMethod: method,
-        status: parsedOrder?.status ?? OrderStatus.submitted,
-        createdAt: parsedOrder?.createdAt ?? now,
-      );
+      if (batchId.isEmpty ||
+          parsedOrder == null ||
+          parsedOrder.id.isEmpty ||
+          parsedOrder.orderNumber.isEmpty) {
+        throw Exception('Máy chủ chưa trả thông tin đơn hàng hợp lệ.');
+      }
+      final order = parsedOrder;
       ordersController.setCurrentOrder(order);
       _checkoutIdempotencyKey = null;
       cartController.clearCart();

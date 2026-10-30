@@ -51,13 +51,6 @@ function extractRefreshToken(req) {
   if (cookieValue) return decodeURIComponent(cookieValue);
   return req.body.refreshToken || req.body.refresh_token || req.headers['x-refresh-token'] || null;
 }
-async function seedDemoVoucher() {
-  if (process.env.NODE_ENV === 'production') return;
-  const now = new Date();
-  const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  await Voucher.updateOne({ code: 'MAXKO20' }, { $setOnInsert: { code: 'MAXKO20', title: 'Ưu đãi khách hàng mới', discountPercent: 20, maxDiscount: 30000, minOrderTotal: 0, startDate: now, endDate, isActive: true } }, { upsert: true });
-}
-
 router.post('/auth/register/request-code', async (req, res, next) => {
   try {
     const name = String(req.body.name || '').trim();
@@ -278,6 +271,44 @@ router.post('/auth/refresh', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 router.get('/auth/me', requireAuth, (req, res) => success(res, safeCustomer(req.customer)));
+router.put('/auth/me', requireAuth, async (req, res, next) => {
+  try {
+    const updates = {};
+    if (req.body.name !== undefined) {
+      const name = String(req.body.name).trim();
+      if (!name || name.length > 100) {
+        return res.status(400).json({ success: false, error: 'Tên hiển thị không hợp lệ.', code: 'VALIDATION_ERROR' });
+      }
+      updates.name = name;
+    }
+    if (req.body.phone !== undefined) {
+      const phone = String(req.body.phone).trim();
+      if (!/^\+?[0-9 ()-]{8,20}$/.test(phone)) {
+        return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ.', code: 'VALIDATION_ERROR' });
+      }
+      const existing = await Customer.findOne({ phone, _id: { $ne: req.customer._id } }).select('_id').lean();
+      if (existing) return res.status(409).json({ success: false, error: 'Số điện thoại đã được sử dụng.', code: 'ACCOUNT_EXISTS' });
+      updates.phone = phone;
+    }
+    if (req.body.birthday !== undefined) {
+      const birthday = req.body.birthday === null ? null : new Date(req.body.birthday);
+      if (birthday && Number.isNaN(birthday.getTime())) {
+        return res.status(400).json({ success: false, error: 'Ngày sinh không hợp lệ.', code: 'VALIDATION_ERROR' });
+      }
+      updates.birthday = birthday;
+    }
+    if (req.body.gender !== undefined) {
+      const gender = String(req.body.gender).toLowerCase();
+      if (!['unspecified', 'female', 'male', 'other'].includes(gender)) {
+        return res.status(400).json({ success: false, error: 'Giới tính không hợp lệ.', code: 'VALIDATION_ERROR' });
+      }
+      updates.gender = gender;
+    }
+    Object.assign(req.customer, updates);
+    await req.customer.save();
+    return success(res, safeCustomer(req.customer), 'Đã cập nhật hồ sơ.');
+  } catch (error) { next(error); }
+});
 router.post('/auth/logout', requireAuth, async (req, res, next) => {
   try {
     revoke(req.authPayload?.jti, req.authPayload?.exp);
@@ -297,19 +328,48 @@ router.post('/auth/logout', requireAuth, async (req, res, next) => {
 
 router.get('/bootstrap', async (req, res, next) => {
   try {
-    await seedDemoVoucher();
     const products = await Product.find({ isAvailable: true }).sort({ createdAt: -1 }).lean();
     const categories = [...new Set(products.map((product) => product.category))].map((name, i) => ({ id: `cat-${i + 1}`, name }));
     const toppings = [...new Map(products.flatMap((product) => product.toppings || []).map((item) => [item.name, { id: item.name, name: item.name, price: item.extraPrice, isAvailable: true }])).values()];
     const vouchers = await Voucher.find({ isActive: true, ownerCustomer: null }).lean();
     const branches = await Branch.find({ isActive: true, isOpen: true }).lean();
-    success(res, { branches, categories, products, toppings, vouchers, campaigns: [] });
+    const now = new Date();
+    const promotions = await Promotion.find({ isActive: true, $and: [
+      { $or: [{ startDate: null }, { startDate: { $lte: now } }] },
+      { $or: [{ endDate: null }, { endDate: { $gte: now } }] },
+    ] }).sort({ startDate: 1 }).lean();
+    const campaigns = promotions.map((item) => ({
+      id: String(item._id),
+      title: item.title,
+      description: item.description,
+      voucherCode: item.code || '',
+      startDate: item.startDate,
+      endDate: item.endDate,
+    }));
+    success(res, { branches, categories, products, toppings, vouchers, campaigns });
   } catch (error) { next(error); }
 });
-router.get('/customers/campaigns', (req, res) => success(res, [{ id: 'camp-maxko20', title: 'Ưu đãi khách hàng mới', bannerUrl: '', startDate: new Date().toISOString().slice(0, 10), endDate: new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10), voucherCode: 'MAXKO20' }]));
+router.get('/customers/campaigns', async (req, res, next) => {
+  try {
+    const now = new Date();
+    const filter = { isActive: true, $and: [
+      { $or: [{ startDate: null }, { startDate: { $lte: now } }] },
+      { $or: [{ endDate: null }, { endDate: { $gte: now } }] },
+    ] };
+    if (req.query.brandId) filter.$and.push({ $or: [{ brandIds: { $size: 0 } }, { brandIds: String(req.query.brandId) }] });
+    const promotions = await Promotion.find(filter).sort({ startDate: 1 }).lean();
+    success(res, promotions.map((item) => ({
+      id: String(item._id),
+      title: item.title,
+      description: item.description,
+      voucherCode: item.code || '',
+      startDate: item.startDate,
+      endDate: item.endDate,
+    })));
+  } catch (error) { next(error); }
+});
 router.get('/customers/vouchers', optionalAuth, async (req, res, next) => {
   try {
-    await seedDemoVoucher();
     const ownership = req.customer
       ? [{ ownerCustomer: null }, { ownerCustomer: req.customer._id }]
       : [{ ownerCustomer: null }];
@@ -403,7 +463,6 @@ router.get('/products/toppings', async (req, res, next) => {
 });
 router.post('/customers/vouchers/validate', optionalAuth, async (req, res, next) => {
   try {
-    await seedDemoVoucher();
     const code = String(req.body.code || '').trim().toUpperCase();
     const orderTotal = Number(req.body.orderTotal || 0);
     const voucher = await Voucher.findOne({ code, isActive: true });
@@ -434,7 +493,9 @@ router.post('/orders', optionalAuth, async (req, res, next) => {
     const voucher = req.body.voucherCode ? await Voucher.findOne({ code: String(req.body.voucherCode).toUpperCase(), isActive: true }) : null;
     if (req.body.voucherCode && (!voucher || subtotal < voucher.minOrderTotal || (voucher.startDate && voucher.startDate > new Date()) || (voucher.endDate && voucher.endDate < new Date()))) return res.status(400).json({ success: false, error: 'Voucher không hợp lệ hoặc không đủ điều kiện áp dụng.', code: 'VOUCHER_INVALID' });
     const discount = voucher ? Math.min(voucher.discountAmount || subtotal * voucher.discountPercent / 100, voucher.maxDiscount || Number.MAX_SAFE_INTEGER, subtotal) : 0;
-    const shippingFee = req.body.orderType === 'DELIVERY' ? 15000 : 0;
+    const shippingFee = req.body.orderType === 'DELIVERY'
+      ? Math.max(0, Number(process.env.DELIVERY_FEE || 0))
+      : 0;
     const paymentMethod = String(req.body.paymentMethod || 'CASH').toUpperCase();
     if (paymentMethod !== 'CASH') return res.status(400).json({ success: false, error: 'Thanh toán trực tuyến chưa được cấu hình. Vui lòng chọn tiền mặt.', code: 'PAYMENT_METHOD_UNAVAILABLE' });
     const order = await Order.create({

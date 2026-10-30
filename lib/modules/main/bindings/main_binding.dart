@@ -37,7 +37,7 @@ class MainBinding extends Bindings {
       () => ProductRepository(
         apiProvider: Get.find<ApiClient>(),
         brandId: 'brand-legia',
-        branchId: 'b-cau-giay',
+        branchId: '',
       ),
     );
     Get.lazyPut<MenuController>(

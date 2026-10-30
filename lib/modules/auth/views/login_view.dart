@@ -51,24 +51,6 @@ class LoginView extends GetView<AuthController> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF2E8),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'CHẾ ĐỘ DEMO · Dùng email hợp lệ và mật khẩu bất kỳ. Dữ liệu chỉ lưu trong phiên hiện tại.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.primaryDark,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-
                   const SizedBox(height: 32),
 
                   _buildLabel('Tên đăng nhập hoặc Email'),

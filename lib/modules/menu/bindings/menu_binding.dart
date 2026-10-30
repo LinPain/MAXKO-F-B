@@ -12,7 +12,7 @@ class MenuBinding extends Bindings {
         productRepository: ProductRepository(
           apiProvider: Get.find<ApiClient>(),
           brandId: 'brand-legia',
-          branchId: 'b-cau-giay',
+          branchId: '',
         ),
       ),
     );

@@ -24,7 +24,7 @@ class MainView extends GetView<MainController> {
   Widget build(BuildContext context) {
     final pages = [
       const HomeView(),
-      const BrandsView(homeMode: true),
+      const BrandsView(),
       const MenuView(),
       OrdersView(showScrollableHeader: true, scaffoldKey: scaffoldKey),
       const MembershipView(),

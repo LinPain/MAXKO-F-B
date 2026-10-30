@@ -25,7 +25,7 @@ class ProductModel {
     required this.categoryId,
     required this.isAvailable,
     this.brandId = 'brand-legia',
-    this.branchId = 'b-cau-giay',
+    this.branchId = '',
     this.sizes = const [],
     this.sugarLevels = const [],
     this.iceLevels = const [],
@@ -53,7 +53,7 @@ class ProductModel {
               ? availability['isAvailable'] as bool? ?? false
               : false),
       brandId: json['brandId']?.toString() ?? 'brand-legia',
-      branchId: json['branchId']?.toString() ?? 'b-cau-giay',
+      branchId: json['branchId']?.toString() ?? '',
       sizes: _parseOptions(json['sizes']),
       sugarLevels: _parseOptions(json['sugarLevels']),
       iceLevels: _parseOptions(json['iceLevels']),

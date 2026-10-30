@@ -22,7 +22,7 @@ class ProductRepository implements ProductCatalog {
   @override
   Future<List<ProductModel>> getProducts() async {
     final data = await apiProvider.get(
-      '/api/products?brandId=$brandId&branchId=$branchId&availableOnly=true',
+      '/api/products?brandId=$brandId${branchId.isEmpty ? '' : '&branchId=$branchId'}&availableOnly=true',
     );
     final products = _list(data, keys: const ['products', 'items'])
         .whereType<Map>()
@@ -89,7 +89,7 @@ class ProductRepository implements ProductCatalog {
   @override
   Future<List<String>> getCategories() async {
     final data = await apiProvider.get(
-      '/api/products/categories/all?brandId=$brandId',
+      '/api/products/categories?brandId=$brandId',
     );
     final values = _list(data, keys: const ['categories', 'items']);
     _categoryNames.clear();
