@@ -2,6 +2,16 @@
 
 MAXKO F&B customer app for discovering brands, ordering, tracking orders, and managing membership.
 
+## API data source
+
+The app uses the MAXKO API at `https://api.legiapos.vn` by default in debug and release builds, matching the production endpoint in the supplied MAXKO project archive. To point a local build at the backend in this repository, pass `API_BASE_URL` when starting Flutter:
+
+```bash
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000
+```
+
+Use `http://localhost:5000` for web, iOS simulator, or desktop runs, and your computer's LAN IP with port `5000` for a physical phone. The backend reads its MongoDB connection from `backend/.env`; the ZIP does not provide a production MongoDB/Atlas connection string.
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

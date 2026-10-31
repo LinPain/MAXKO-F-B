@@ -7,7 +7,7 @@ Express and MongoDB API for the MAXKO F&B customer app. It serves the app's cata
 1. Install Node.js and MongoDB, then run `npm install` from this directory.
 2. Copy `.env.example` to `.env`. Set `MONGODB_URI`, a random `JWT_SECRET` with at least 32 characters, and SMTP settings if email verification and password reset should send mail.
 3. Start MongoDB, then run `npm run dev` from this directory. The API listens on port 5000 by default.
-4. In the Flutter app, set `API_BASE_URL` to the API address. Android emulators usually reach the host machine at `http://10.0.2.2:5000`; iOS simulators and desktop builds can usually use `http://localhost:5000`. A physical phone needs the computer's LAN address and matching CORS settings where applicable.
+4. The Flutter app defaults to the archive's production API, `https://api.legiapos.vn`. To use this local backend, run Flutter with `--dart-define=API_BASE_URL=http://10.0.2.2:5000` on an Android emulator, or use `http://localhost:5000` for web, iOS simulator, and desktop. A physical phone needs the computer's LAN address and matching CORS settings where applicable.
 5. Add approved product, branch, promotion, reward, and lucky-wheel records through the database setup used by your team. The customer API returns empty collections until those records are present. Wheel probabilities are stored server-side and are never sent to the customer app.
 
 ## Customer API areas

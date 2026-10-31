@@ -18,34 +18,54 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   List<ProductModel> products = [];
+  List<Map<String, dynamic>> promotions = [];
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _loadHomeData();
   }
 
-  Future<void> _loadProducts() async {
-    try {
-      final response = await Get.find<ApiClient>().get(
-        '/api/products?availableOnly=true',
-      );
-      final values = response is List
-          ? response
-          : response is Map && response['products'] is List
-          ? response['products'] as List
-          : response is Map && response['items'] is List
-          ? response['items'] as List
-          : const <dynamic>[];
-      final loaded = values
-          .whereType<Map>()
-          .map((item) => ProductModel.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-      if (mounted) setState(() { products = loaded; isLoading = false; });
-    } catch (_) {
-      if (mounted) setState(() => isLoading = false);
+  Future<void> _loadHomeData() async {
+    final api = Get.find<ApiClient>();
+    final responses = await Future.wait<dynamic>([
+      api.get('/api/products?availableOnly=true').then((value) => value).catchError((_) => null),
+      api.get('/api/promotions?brandId=brand-legia').then((value) => value).catchError((_) => null),
+    ]);
+
+    if (!mounted) return;
+    final productValues = _listFromResponse(responses[0]);
+    final promotionValues = _listFromResponse(responses[1]);
+    setState(() {
+      if (responses[0] != null) {
+        products = productValues
+            .whereType<Map>()
+            .map((item) => ProductModel.fromJson(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+      if (responses[1] != null) {
+        promotions = promotionValues
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+      isLoading = false;
+    });
+  }
+
+  List<dynamic> _listFromResponse(dynamic response) {
+    if (response is List) return response;
+    if (response is Map && response['promotions'] is List) {
+      return response['promotions'] as List;
     }
+    if (response is Map && response['products'] is List) {
+      return response['products'] as List;
+    }
+    if (response is Map && response['items'] is List) {
+      return response['items'] as List;
+    }
+    return const [];
   }
 
   @override
@@ -53,7 +73,7 @@ class _HomeViewState extends State<HomeView> {
     final account = Get.find<AccountController>();
     return RefreshIndicator(
       color: AppColors.primary,
-      onRefresh: _loadProducts,
+      onRefresh: _loadHomeData,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
@@ -68,6 +88,28 @@ class _HomeViewState extends State<HomeView> {
               child: _SavedAddressCard(address: address),
             );
           }),
+          if (promotions.isNotEmpty) ...[
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Ưu đãi đang diễn ra',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+              ),
+            ),
+            SizedBox(
+              height: 142,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: promotions.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, index) => _PromotionCard(
+                  promotion: promotions[index],
+                  onTap: () => Get.find<MainController>().changeTab(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Row(
             children: [
               const Expanded(
@@ -140,6 +182,87 @@ class _SavedAddressCard extends StatelessWidget {
           ],
         ),
       );
+}
+
+class _PromotionCard extends StatelessWidget {
+  const _PromotionCard({required this.promotion, required this.onTap});
+
+  final Map<String, dynamic> promotion;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final type = promotion['type']?.toString().toUpperCase();
+    final value = (promotion['value'] as num?)?.toDouble() ?? 0;
+    final discount = type == 'PERCENT'
+        ? 'Giảm ${value.toStringAsFixed(0)}%'
+        : 'Giảm ${value.toStringAsFixed(0)}đ';
+    final code = promotion['code']?.toString() ?? '';
+
+    return SizedBox(
+      width: 280,
+      child: Material(
+        color: AppColors.primaryDark,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.local_offer_outlined, color: Colors.white, size: 18),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        discount,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  promotion['title']?.toString() ?? 'Ưu đãi MAXKO',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 3),
+                Expanded(
+                  child: Text(
+                    promotion['description']?.toString() ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                ),
+                Row(
+                  children: [
+                    if (code.isNotEmpty)
+                      Expanded(
+                        child: Text(
+                          'Mã: $code',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    const Text('Chọn món  ›', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _MembershipSummary extends StatelessWidget {

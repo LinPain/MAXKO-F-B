@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../data/providers/api_client.dart';
@@ -29,13 +28,6 @@ void ensureCommerceDependencies() {
 String get _apiBaseUrl {
   const configured = String.fromEnvironment('API_BASE_URL');
   if (configured.isNotEmpty) return configured;
-  if (kDebugMode) {
-    if (kIsWeb) return 'http://localhost:5000';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5000';
-    }
-    return 'http://localhost:5000';
-  }
   return 'https://api.legiapos.vn';
 }
 
